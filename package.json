@@ -1,0 +1,47 @@
+{
+  "name": "setup-fortran",
+  "version": "1.0.0",
+  "description": "Set up Fortran compilers on GitHub Actions runners",
+  "homepage": "https://github.com/minhqdao/setup-fortran#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/minhqdao/setup-fortran.git"
+  },
+  "bugs": {
+    "url": "https://github.com/minhqdao/setup-fortran/issues"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Minh Dao",
+    "email": "hello@minhdao.de",
+    "url": "https://minhdao.de"
+  },
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "build": "ncc build src/index.ts -o dist --source-map",
+    "format": "prettier --write src/**/*.ts",
+    "format:check": "prettier --check src/**/*.ts",
+    "lint": "eslint src/**/*.ts",
+    "test": "jest",
+    "all": "npm run format:check && npm run lint && npm run build && npm test"
+  },
+  "dependencies": {
+    "@actions/core": "^3.0.0",
+    "@actions/exec": "^3.0.0",
+    "@actions/tool-cache": "^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.6.0",
+    "@vercel/ncc": "^0.38.4",
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0",
+    "jest": "^30.3.0",
+    "prettier": "^3.8.3",
+    "ts-jest": "^29.4.9",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.0"
+  }
+}
