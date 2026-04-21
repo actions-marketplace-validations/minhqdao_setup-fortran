@@ -1,5 +1,4 @@
-import type { Target } from "../../types";
-import { OS } from "../../types";
+import { OS, type Target } from "../../types";
 import { installLinux } from "./linux";
 import { installMacOS } from "./macos";
 import { installWindows } from "./windows";

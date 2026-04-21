@@ -34,11 +34,8 @@ export interface Target {
   version: string;
   os: OS;
   arch: Arch;
-  windowsEnv?: WindowsEnv;
+  windowsEnv: WindowsEnv;
 }
 
-export const Defaults = {
-  compiler: Compiler.GCC,
-  version: "latest",
-  windowsEnv: WindowsEnv.Native,
-} as const;
+export const LATEST = "latest" as const;
+export type Latest = typeof LATEST;

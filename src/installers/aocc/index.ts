@@ -1,5 +1,4 @@
-import type { Target } from "../../types";
-import { OS } from "../../types";
+import { OS, type Target } from "../../types";
 import { installLinux } from "./linux";
 
 export async function installAOCC(target: Target): Promise<string> {

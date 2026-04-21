@@ -1,7 +1,12 @@
 import * as core from "@actions/core";
 import * as os from "os";
-import type { Target } from "./types";
-import { Compiler, OS, Arch, WindowsEnv, Defaults } from "./types";
+import { Compiler, OS, Arch, WindowsEnv, LATEST, type Target } from "./types";
+
+const DEFAULTS = {
+  compiler: Compiler.GCC,
+  version: LATEST,
+  windowsEnv: WindowsEnv.Native,
+} as const;
 
 function detectOS(): OS {
   switch (process.platform) {
@@ -90,8 +95,8 @@ function parseWindowsEnv(raw: string): WindowsEnv {
 }
 
 export function parseInputs(): Target {
-  const rawCompiler = core.getInput("compiler") || Defaults.compiler;
-  const rawVersion = core.getInput("version") || Defaults.version;
+  const rawCompiler = core.getInput("compiler") || DEFAULTS.compiler;
+  const rawVersion = core.getInput("version") || DEFAULTS.version;
   const rawWinEnv = core.getInput("windows-env");
 
   const compiler = parseCompiler(rawCompiler);
@@ -102,9 +107,7 @@ export function parseInputs(): Target {
     version: rawVersion,
     os: detectedOS,
     arch: detectArch(),
-    ...(detectedOS === OS.Windows && {
-      windowsEnv: rawWinEnv ? parseWindowsEnv(rawWinEnv) : Defaults.windowsEnv,
-    }),
+    windowsEnv: rawWinEnv ? parseWindowsEnv(rawWinEnv) : DEFAULTS.windowsEnv,
   };
 
   return target;

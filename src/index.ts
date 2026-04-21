@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 import { parseInputs } from "./parse_input";
-import { Compiler, OS, Defaults } from "./types";
+import { Compiler, OS } from "./types";
 import { installGCC } from "./installers/gcc";
 import { installIFX } from "./installers/ifx";
 import { installIFort } from "./installers/ifort";
@@ -18,7 +18,7 @@ async function run(): Promise<void> {
     core.info(`Arch     : ${target.arch}`);
 
     if (target.os === OS.Windows) {
-      core.info(`Windows env : ${target.windowsEnv ?? Defaults.windowsEnv}`);
+      core.info(`Windows env : ${target.windowsEnv}`);
     }
 
     let installedVersion: string;
