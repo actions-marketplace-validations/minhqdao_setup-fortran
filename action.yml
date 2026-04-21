@@ -1,0 +1,24 @@
+name: "setup-fortran"
+description: "Set up Fortran compilers on GitHub Actions runners"
+author: "minhqdao"
+
+inputs:
+  compiler:
+    description: "The Fortran compiler to install. Defaults to 'gcc'."
+    required: false
+    default: "gcc"
+  version:
+    description: "The compiler version to install. Defaults to the latest version."
+    required: false
+  windows-env:
+    description: "Windows environment to use. Defaults to 'native'."
+    required: false
+    default: "native"
+
+outputs:
+  compiler-version:
+    description: "The installed compiler version"
+
+runs:
+  using: "node24"
+  main: "dist/index.js"

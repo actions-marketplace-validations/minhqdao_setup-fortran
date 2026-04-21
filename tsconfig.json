@@ -8,16 +8,18 @@
         "strict": true,
         "esModuleInterop": true,
         "outDir": "./dist",
-        "rootDir": "./src",
+        "rootDir": ".",
         "types": [
-            "node"
-        ],
+            "node",
+            "jest"
+        ]
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "__tests__/**/*"
     ],
     "exclude": [
         "node_modules",
-        "__tests__"
+        "dist"
     ]
 }
