@@ -6,6 +6,7 @@ const baseTarget: Target = {
   compiler: Compiler.GCC,
   version: LATEST,
   os: OS.Linux,
+  osVersion: "22.04",
   arch: Arch.X64,
   windowsEnv: WindowsEnv.Native,
 };

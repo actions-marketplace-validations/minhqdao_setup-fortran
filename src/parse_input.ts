@@ -78,8 +78,8 @@ function detectArch(): Arch {
 
 function parseCompiler(raw: string): Compiler {
   const valid = Object.values(Compiler);
-  const val = raw.toLowerCase().trim();
-  if ((valid as string[]).includes(val)) return val as Compiler;
+  const val = raw.toLowerCase().trim() as Compiler;
+  if (valid.includes(val)) return val;
   throw new Error(
     `Unknown compiler "${raw}". Valid options: ${valid.join(", ")}`,
   );
@@ -87,8 +87,8 @@ function parseCompiler(raw: string): Compiler {
 
 function parseWindowsEnv(raw: string): WindowsEnv {
   const valid = Object.values(WindowsEnv);
-  const val = raw.toLowerCase().trim();
-  if ((valid as string[]).includes(val)) return val as WindowsEnv;
+  const val = raw.toLowerCase().trim() as WindowsEnv;
+  if (valid.includes(val)) return val;
   throw new Error(
     `Unknown windows-env "${raw}". Valid options: ${valid.join(", ")}`,
   );
@@ -106,6 +106,7 @@ export function parseInputs(): Target {
     compiler,
     version: rawVersion,
     os: detectedOS,
+    osVersion: process.env.ImageOS ?? os.release(),
     arch: detectArch(),
     windowsEnv: rawWinEnv ? parseWindowsEnv(rawWinEnv) : DEFAULTS.windowsEnv,
   };

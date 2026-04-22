@@ -31328,10 +31328,11 @@ const lfortran_1 = __nccwpck_require__(8404);
 async function run() {
     try {
         const target = (0, parse_input_1.parseInputs)();
-        core.info(`Compiler : ${target.compiler}`);
-        core.info(`Version  : ${target.version}`);
-        core.info(`OS       : ${target.os}`);
-        core.info(`Arch     : ${target.arch}`);
+        core.info(`Compiler  : ${target.compiler}`);
+        core.info(`Version   : ${target.version}`);
+        core.info(`OS        : ${target.os}`);
+        core.info(`OS Version: ${target.osVersion}`);
+        core.info(`Arch      : ${target.arch}`);
         if (target.os === types_1.OS.Windows) {
             core.info(`Windows env : ${target.windowsEnv}`);
         }
@@ -31465,11 +31466,13 @@ const SUPPORTED_VERSIONS = {
 async function installDebian(target) {
     const version = (0, resolve_version_1.resolveVersion)(target, SUPPORTED_VERSIONS);
     core.info(`Installing GCC ${version} on Linux (${target.arch})...`);
-    await exec.exec("sudo", [
-        "add-apt-repository",
-        "--yes",
-        "ppa:ubuntu-toolchain-r/test",
-    ]);
+    if (version === "15" || target.osVersion.includes("22")) {
+        await exec.exec("sudo", [
+            "add-apt-repository",
+            "--yes",
+            "ppa:ubuntu-toolchain-r/test",
+        ]);
+    }
     await exec.exec("sudo", ["apt-get", "update", "-y"]);
     await exec.exec("sudo", [
         "apt-get",
@@ -31766,6 +31769,7 @@ function parseInputs() {
         compiler,
         version: rawVersion,
         os: detectedOS,
+        osVersion: process.env.ImageOS ?? os.release(),
         arch: detectArch(),
         windowsEnv: rawWinEnv ? parseWindowsEnv(rawWinEnv) : DEFAULTS.windowsEnv,
     };

@@ -13,11 +13,14 @@ export async function installDebian(target: Target): Promise<string> {
   const version = resolveVersion(target, SUPPORTED_VERSIONS);
   core.info(`Installing GCC ${version} on Linux (${target.arch})...`);
 
-  await exec.exec("sudo", [
-    "add-apt-repository",
-    "--yes",
-    "ppa:ubuntu-toolchain-r/test",
-  ]);
+  if (version === "15" || target.osVersion.includes("22")) {
+    await exec.exec("sudo", [
+      "add-apt-repository",
+      "--yes",
+      "ppa:ubuntu-toolchain-r/test",
+    ]);
+  }
+
   await exec.exec("sudo", ["apt-get", "update", "-y"]);
   await exec.exec("sudo", [
     "apt-get",

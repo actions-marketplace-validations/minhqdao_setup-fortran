@@ -33,6 +33,7 @@ export interface Target {
   compiler: Compiler;
   version: string;
   os: OS;
+  osVersion: string;
   arch: Arch;
   windowsEnv: WindowsEnv;
 }

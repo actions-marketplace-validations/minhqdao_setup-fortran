@@ -12,10 +12,11 @@ async function run(): Promise<void> {
   try {
     const target = parseInputs();
 
-    core.info(`Compiler : ${target.compiler}`);
-    core.info(`Version  : ${target.version}`);
-    core.info(`OS       : ${target.os}`);
-    core.info(`Arch     : ${target.arch}`);
+    core.info(`Compiler  : ${target.compiler}`);
+    core.info(`Version   : ${target.version}`);
+    core.info(`OS        : ${target.os}`);
+    core.info(`OS Version: ${target.osVersion}`);
+    core.info(`Arch      : ${target.arch}`);
 
     if (target.os === OS.Windows) {
       core.info(`Windows env : ${target.windowsEnv}`);

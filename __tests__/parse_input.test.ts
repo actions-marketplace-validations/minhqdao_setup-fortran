@@ -11,23 +11,29 @@ describe("parseInputs", () => {
     typeof core.getInput
   >;
   const mockedArch = os.arch as jest.MockedFunction<typeof os.arch>;
+  const mockedRelease = os.release as jest.MockedFunction<typeof os.release>;
 
   let originalPlatform: string;
+  let originalEnv: NodeJS.ProcessEnv;
 
   beforeAll(() => {
     originalPlatform = process.platform;
+    originalEnv = { ...process.env };
   });
 
   afterAll(() => {
     Object.defineProperty(process, "platform", {
       value: originalPlatform,
     });
+    process.env = originalEnv;
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockedGetInput.mockReturnValue("");
     mockedArch.mockReturnValue("x64");
+    mockedRelease.mockReturnValue("5.15.0");
+    delete process.env.ImageOS;
     setPlatform("linux");
   });
 
@@ -44,6 +50,7 @@ describe("parseInputs", () => {
       compiler: Compiler.GCC,
       version: LATEST,
       os: OS.Linux,
+      osVersion: "5.15.0",
       arch: Arch.X64,
       windowsEnv: WindowsEnv.Native,
     });
@@ -56,6 +63,7 @@ describe("parseInputs", () => {
       compiler: Compiler.GCC,
       version: LATEST,
       os: OS.Linux,
+      osVersion: "5.15.0",
       arch: Arch.X64,
       windowsEnv: WindowsEnv.Native,
     });
@@ -218,6 +226,19 @@ describe("parseInputs", () => {
     it("throws for unsupported architecture", () => {
       mockedArch.mockReturnValue("arm" as any);
       expect(() => parseInputs()).toThrow('Not implemented yet: "arm" case');
+    });
+  });
+
+  describe("osVersion population", () => {
+    it("uses ImageOS environment variable if available", () => {
+      process.env.ImageOS = "ubuntu22";
+      expect(parseInputs().osVersion).toBe("ubuntu22");
+    });
+
+    it("falls back to os.release() if ImageOS is not set", () => {
+      delete process.env.ImageOS;
+      mockedRelease.mockReturnValue("22.04.1-Ubuntu");
+      expect(parseInputs().osVersion).toBe("22.04.1-Ubuntu");
     });
   });
 });
