@@ -102,4 +102,4 @@ jobs:
           echo "Output: ${{ steps.setup.outputs.compiler-version }}"
 
       - name: Run Integration Tests
-        run: npm run integration-tests
+        run: npm run integration-test
