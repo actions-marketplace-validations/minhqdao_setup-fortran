@@ -1,7 +1,10 @@
 node_modules/
 lib/
 coverage/
+test_build
 *.tsbuildinfo
+*.mod
+*.out
 .vscode/settings.json
 .idea/
 .env

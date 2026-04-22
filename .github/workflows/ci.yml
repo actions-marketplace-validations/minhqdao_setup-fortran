@@ -46,7 +46,7 @@ jobs:
         run: npm run test
 
   build:
-    name: Build
+    name: Build and compare dist/
     runs-on: ubuntu-latest
     needs: [ format-lint, unit-tests ]
     steps:
@@ -84,6 +84,8 @@ jobs:
           - { compiler: gfortran, version: "15" }
           - { compiler: gfortran, version: "14" }
           - { compiler: gfortran, version: "13" }
+          - { compiler: gfortran, version: "12" }
+          - { compiler: gfortran, version: "11" }
 
     steps:
       - uses: actions/checkout@v6
@@ -99,12 +101,5 @@ jobs:
         run: |
           echo "Output: ${{ steps.setup.outputs.compiler-version }}"
 
-      - name: Compile a Fortran hello world
-        run: |
-          cat > hello.f90 << 'EOF'
-          program hello
-            print *, "Hello from GFortran!"
-          end program hello
-          EOF
-          gfortran hello.f90 -o hello
-          ./hello
+      - name: Run Integration Tests
+        run: npm run integration-tests
