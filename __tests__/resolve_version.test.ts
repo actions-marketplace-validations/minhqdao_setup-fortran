@@ -3,7 +3,7 @@ import { Arch, Compiler, LATEST, OS, WindowsEnv } from "../src/types";
 import type { Target } from "../src/types";
 
 const baseTarget: Target = {
-  compiler: Compiler.GCC,
+  compiler: Compiler.GFortran,
   version: LATEST,
   os: OS.Linux,
   osVersion: "22.04",
@@ -40,14 +40,14 @@ describe("resolveVersion", () => {
     it("throws if the version is not supported on this arch", () => {
       const target: Target = { ...baseTarget, arch: Arch.ARM64, version: "15" };
       expect(() => resolveVersion(target, SUPPORTED)).toThrow(
-        "gcc 15 is not supported on linux (arm64). Supported versions: 14, 13",
+        "gfortran 15 is not supported on linux (arm64). Supported versions: 14, 13",
       );
     });
 
     it("throws if the version is not supported on any arch", () => {
       const target: Target = { ...baseTarget, version: "9" };
       expect(() => resolveVersion(target, SUPPORTED)).toThrow(
-        "gcc 9 is not supported on linux (x64). Supported versions: 15, 14, 13",
+        "gfortran 9 is not supported on linux (x64). Supported versions: 15, 14, 13",
       );
     });
   });
@@ -59,7 +59,7 @@ describe("resolveVersion", () => {
         [Arch.ARM64]: [],
       };
       expect(() => resolveVersion(baseTarget, emptySupported)).toThrow(
-        "No supported versions found for gcc on linux (x64).",
+        "No supported versions found for gfortran on linux (x64).",
       );
     });
 
@@ -69,7 +69,7 @@ describe("resolveVersion", () => {
       };
       const target: Target = { ...baseTarget, arch: Arch.ARM64 };
       expect(() => resolveVersion(target, x64Only)).toThrow(
-        "No supported versions found for gcc on linux (arm64).",
+        "No supported versions found for gfortran on linux (arm64).",
       );
     });
   });

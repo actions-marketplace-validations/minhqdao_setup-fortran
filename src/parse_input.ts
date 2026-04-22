@@ -3,7 +3,7 @@ import * as os from "os";
 import { Compiler, OS, Arch, WindowsEnv, LATEST, type Target } from "./types";
 
 const DEFAULTS = {
-  compiler: Compiler.GCC,
+  compiler: Compiler.GFortran,
   version: LATEST,
   windowsEnv: WindowsEnv.Native,
 } as const;

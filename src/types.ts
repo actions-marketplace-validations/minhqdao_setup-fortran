@@ -1,5 +1,5 @@
 export const Compiler = {
-  GCC: "gcc",
+  GFortran: "gfortran",
   IFX: "ifx",
   IFort: "ifort",
   NVFortran: "nvfortran",

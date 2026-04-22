@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
-import { installDebian } from "../../../src/installers/gcc/debian";
+import { installDebian } from "../../../src/installers/gfortran/debian";
 import {
   Arch,
   Compiler,
@@ -16,7 +16,7 @@ describe("installDebian", () => {
   const mockedExec = exec.exec as jest.MockedFunction<typeof exec.exec>;
 
   const baseTarget: Target = {
-    compiler: Compiler.GCC,
+    compiler: Compiler.GFortran,
     version: "14",
     os: OS.Linux,
     osVersion: "20.04.6",
@@ -72,7 +72,7 @@ describe("installDebian", () => {
     ]);
   });
 
-  it("always updates apt and installs gcc", async () => {
+  it("always updates apt and installs gfortran", async () => {
     await installDebian(baseTarget);
 
     expect(mockedExec).toHaveBeenCalledWith("sudo", [

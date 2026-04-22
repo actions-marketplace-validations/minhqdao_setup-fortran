@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import { parseInputs } from "./parse_input";
 import { Compiler, OS } from "./types";
-import { installGCC } from "./installers/gcc";
+import { installGFortran } from "./installers/gfortran";
 import { installIFX } from "./installers/ifx";
 import { installIFort } from "./installers/ifort";
 import { installNVFortran } from "./installers/nvfortran";
@@ -25,8 +25,8 @@ async function run(): Promise<void> {
     let installedVersion: string;
 
     switch (target.compiler) {
-      case Compiler.GCC:
-        installedVersion = await installGCC(target);
+      case Compiler.GFortran:
+        installedVersion = await installGFortran(target);
         break;
       case Compiler.IFX:
         installedVersion = await installIFX(target);

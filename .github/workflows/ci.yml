@@ -30,7 +30,7 @@ jobs:
         run: npm run lint
 
   unit-tests:
-    name: Run Unit Tests
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -71,29 +71,32 @@ jobs:
             exit 1
           fi
 
-  tests-gcc-linux:
-    name: GCC ${{ matrix.version }} — Ubuntu
-    runs-on: ubuntu-latest
+  integration-tests:
+    name: ${{ matrix.toolchain.compiler }} ${{ matrix.toolchain.version }} ${{
+      matrix.image }}
+    runs-on: ${{ matrix.image }}
     needs: [ build ]
     strategy:
       fail-fast: false
       matrix:
-        version: [ "latest", "15" ]
+        image: [ ubuntu-24.04, ubuntu-22.04 ]
+        toolchain:
+          - { compiler: gfortran, version: "15" }
+          - { compiler: gfortran, version: "14" }
+          - { compiler: gfortran, version: "13" }
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install GCC
+      - name: Install ${{ matrix.toolchain.compiler }} ${{ matrix.toolchain.version }}
         id: setup
         uses: ./
         with:
-          compiler: gcc
-          version: ${{ matrix.version }}
+          compiler: ${{ matrix.toolchain.compiler }}
+          version: ${{ matrix.toolchain.version }}
 
       - name: Verify installed version
         run: |
-          gcc --version
-          gfortran --version
           echo "Output: ${{ steps.setup.outputs.compiler-version }}"
 
       - name: Compile a Fortran hello world

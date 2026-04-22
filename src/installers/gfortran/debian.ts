@@ -11,7 +11,7 @@ const SUPPORTED_VERSIONS = {
 
 export async function installDebian(target: Target): Promise<string> {
   const version = resolveVersion(target, SUPPORTED_VERSIONS);
-  core.info(`Installing GCC ${version} on Linux (${target.arch})...`);
+  core.info(`Installing GFortran ${version} on Linux (${target.arch})...`);
 
   if (version === "15" || target.osVersion.includes("22")) {
     await exec.exec("sudo", [
@@ -44,7 +44,7 @@ export async function installDebian(target: Target): Promise<string> {
   ]);
 
   const resolvedVersion = await resolveInstalledVersion();
-  core.info(`GCC ${resolvedVersion} installed successfully.`);
+  core.info(`GFortran ${resolvedVersion} installed successfully.`);
   return resolvedVersion;
 }
 

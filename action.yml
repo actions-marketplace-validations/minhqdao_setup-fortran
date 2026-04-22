@@ -4,9 +4,9 @@ author: "minhqdao"
 
 inputs:
   compiler:
-    description: "The Fortran compiler to install. Defaults to 'gcc'."
+    description: "The Fortran compiler to install. Defaults to 'gfortran'."
     required: false
-    default: "gcc"
+    default: "gfortran"
   version:
     description: "The compiler version to install. Defaults to the latest version."
     required: false

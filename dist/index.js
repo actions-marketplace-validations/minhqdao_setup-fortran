@@ -31319,7 +31319,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(7484));
 const parse_input_1 = __nccwpck_require__(8824);
 const types_1 = __nccwpck_require__(6141);
-const gcc_1 = __nccwpck_require__(749);
+const gfortran_1 = __nccwpck_require__(8599);
 const ifx_1 = __nccwpck_require__(2207);
 const ifort_1 = __nccwpck_require__(9932);
 const nvfortran_1 = __nccwpck_require__(3060);
@@ -31338,8 +31338,8 @@ async function run() {
         }
         let installedVersion;
         switch (target.compiler) {
-            case types_1.Compiler.GCC:
-                installedVersion = await (0, gcc_1.installGCC)(target);
+            case types_1.Compiler.GFortran:
+                installedVersion = await (0, gfortran_1.installGFortran)(target);
                 break;
             case types_1.Compiler.IFX:
                 installedVersion = await (0, ifx_1.installIFX)(target);
@@ -31401,7 +31401,7 @@ async function installAOCC(target) {
 
 /***/ }),
 
-/***/ 446:
+/***/ 7612:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -31415,7 +31415,7 @@ async function installDarwin(_) {
 
 /***/ }),
 
-/***/ 2536:
+/***/ 8882:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -31465,7 +31465,7 @@ const SUPPORTED_VERSIONS = {
 };
 async function installDebian(target) {
     const version = (0, resolve_version_1.resolveVersion)(target, SUPPORTED_VERSIONS);
-    core.info(`Installing GCC ${version} on Linux (${target.arch})...`);
+    core.info(`Installing GFortran ${version} on Linux (${target.arch})...`);
     if (version === "15" || target.osVersion.includes("22")) {
         await exec.exec("sudo", [
             "add-apt-repository",
@@ -31494,7 +31494,7 @@ async function installDebian(target) {
         `/usr/bin/gfortran-${version}`,
     ]);
     const resolvedVersion = await resolveInstalledVersion();
-    core.info(`GCC ${resolvedVersion} installed successfully.`);
+    core.info(`GFortran ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
 }
 async function resolveInstalledVersion() {
@@ -31515,18 +31515,18 @@ async function resolveInstalledVersion() {
 
 /***/ }),
 
-/***/ 749:
+/***/ 8599:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.installGCC = installGCC;
+exports.installGFortran = installGFortran;
 const types_1 = __nccwpck_require__(6141);
-const debian_1 = __nccwpck_require__(2536);
-const darwin_1 = __nccwpck_require__(446);
-const win32_1 = __nccwpck_require__(7126);
-async function installGCC(target) {
+const debian_1 = __nccwpck_require__(8882);
+const darwin_1 = __nccwpck_require__(7612);
+const win32_1 = __nccwpck_require__(9988);
+async function installGFortran(target) {
     switch (target.os) {
         case types_1.OS.Linux:
             return await (0, debian_1.installDebian)(target);
@@ -31540,7 +31540,7 @@ async function installGCC(target) {
 
 /***/ }),
 
-/***/ 7126:
+/***/ 9988:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -31675,7 +31675,7 @@ const core = __importStar(__nccwpck_require__(7484));
 const os = __importStar(__nccwpck_require__(857));
 const types_1 = __nccwpck_require__(6141);
 const DEFAULTS = {
-    compiler: types_1.Compiler.GCC,
+    compiler: types_1.Compiler.GFortran,
     version: types_1.LATEST,
     windowsEnv: types_1.WindowsEnv.Native,
 };
@@ -31832,7 +31832,7 @@ function resolveWindowsVersion(target, supportedVersions) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LATEST = exports.WindowsEnv = exports.Arch = exports.OS = exports.Compiler = void 0;
 exports.Compiler = {
-    GCC: "gcc",
+    GFortran: "gfortran",
     IFX: "ifx",
     IFort: "ifort",
     NVFortran: "nvfortran",

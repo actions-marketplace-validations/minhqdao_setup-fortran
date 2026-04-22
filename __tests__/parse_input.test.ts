@@ -47,7 +47,7 @@ describe("parseInputs", () => {
   it("returns default values when no inputs are provided", () => {
     const result = parseInputs();
     expect(result).toEqual({
-      compiler: Compiler.GCC,
+      compiler: Compiler.GFortran,
       version: LATEST,
       os: OS.Linux,
       osVersion: "5.15.0",
@@ -60,7 +60,7 @@ describe("parseInputs", () => {
     mockedGetInput.mockReturnValue("  ");
     const result = parseInputs();
     expect(result).toEqual({
-      compiler: Compiler.GCC,
+      compiler: Compiler.GFortran,
       version: LATEST,
       os: OS.Linux,
       osVersion: "5.15.0",
@@ -97,7 +97,7 @@ describe("parseInputs", () => {
         return "";
       });
       expect(() => parseInputs()).toThrow(
-        'Unknown compiler "unknown-compiler". Valid options: gcc, ifx, ifort, nvfortran, aocc, lfortran',
+        'Unknown compiler "unknown-compiler". Valid options: gfortran, ifx, ifort, nvfortran, aocc, lfortran',
       );
     });
   });
