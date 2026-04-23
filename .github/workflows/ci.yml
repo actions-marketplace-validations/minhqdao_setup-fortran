@@ -46,7 +46,7 @@ jobs:
         run: npm run test
 
   build:
-    name: Build dist/ and dist-tests/
+    name: Build dist and dist-tests
     runs-on: ubuntu-latest
     needs: [ format-lint, unit-tests ]
     steps:
@@ -59,7 +59,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build dist/
+      - name: Build dist
         run: npm run build
 
       - name: Verify dist is up to date
@@ -71,7 +71,7 @@ jobs:
             exit 1
           fi
 
-      - name: Build dist-tests/ and save
+      - name: Build dist-tests and save
         run: npm run build:integration-test
 
       - name: Save dist-tests
@@ -88,7 +88,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [ ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm ]
+        image: [ ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm, macos-26 ]
         toolchain:
           - { compiler: gfortran, version: "15" }
           - { compiler: gfortran, version: "14" }
