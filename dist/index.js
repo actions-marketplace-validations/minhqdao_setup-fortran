@@ -37919,14 +37919,14 @@ function downloadToolAttempt(url, dest, auth, headers) {
  */
 function extract7z(file, dest, _7zPath) {
     return tool_cache_awaiter(this, void 0, void 0, function* () {
-        (0,external_assert_.ok)(tool_cache_IS_WINDOWS, 'extract7z() not supported on current OS');
-        (0,external_assert_.ok)(file, 'parameter "file" is required');
+        ok(tool_cache_IS_WINDOWS, 'extract7z() not supported on current OS');
+        ok(file, 'parameter "file" is required');
         dest = yield _createExtractFolder(dest);
         const originalCwd = process.cwd();
         process.chdir(dest);
         if (_7zPath) {
             try {
-                const logLevel = isDebug() ? '-bb1' : '-bb0';
+                const logLevel = core.isDebug() ? '-bb1' : '-bb0';
                 const args = [
                     'x', // eXtract files with full paths
                     logLevel, // -bb[0-3] : set output log level
@@ -37937,14 +37937,15 @@ function extract7z(file, dest, _7zPath) {
                 const options = {
                     silent: true
                 };
-                yield exec_exec(`"${_7zPath}"`, args, options);
+                yield exec(`"${_7zPath}"`, args, options);
             }
             finally {
                 process.chdir(originalCwd);
             }
         }
         else {
-            const escapedScript = external_path_.join(__dirname, '..', 'scripts', 'Invoke-7zdec.ps1')
+            const escapedScript = path
+                .join(__dirname, '..', 'scripts', 'Invoke-7zdec.ps1')
                 .replace(/'/g, "''")
                 .replace(/"|\n|\r/g, ''); // double-up single quotes, remove double quotes and newlines
             const escapedFile = file.replace(/'/g, "''").replace(/"|\n|\r/g, '');
@@ -37964,8 +37965,8 @@ function extract7z(file, dest, _7zPath) {
                 silent: true
             };
             try {
-                const powershellPath = yield which('powershell', true);
-                yield exec_exec(`"${powershellPath}"`, args, options);
+                const powershellPath = yield io.which('powershell', true);
+                yield exec(`"${powershellPath}"`, args, options);
             }
             finally {
                 process.chdir(originalCwd);
@@ -38088,7 +38089,7 @@ function extractZipWin(file, dest) {
         // build the powershell command
         const escapedFile = file.replace(/'/g, "''").replace(/"|\n|\r/g, ''); // double-up single quotes, remove double quotes and newlines
         const escapedDest = dest.replace(/'/g, "''").replace(/"|\n|\r/g, '');
-        const pwshPath = yield io.which('pwsh', false);
+        const pwshPath = yield which('pwsh', false);
         //To match the file overwrite behavior on nix systems, we use the overwrite = true flag for ExtractToDirectory
         //and the -Force flag for Expand-Archive as a fallback
         if (pwshPath) {
@@ -38108,8 +38109,8 @@ function extractZipWin(file, dest) {
                 '-Command',
                 pwshCommand
             ];
-            core.debug(`Using pwsh at path: ${pwshPath}`);
-            yield exec(`"${pwshPath}"`, args);
+            core_debug(`Using pwsh at path: ${pwshPath}`);
+            yield exec_exec(`"${pwshPath}"`, args);
         }
         else {
             const powershellCommand = [
@@ -38128,21 +38129,21 @@ function extractZipWin(file, dest) {
                 '-Command',
                 powershellCommand
             ];
-            const powershellPath = yield io.which('powershell', true);
-            core.debug(`Using powershell at path: ${powershellPath}`);
-            yield exec(`"${powershellPath}"`, args);
+            const powershellPath = yield which('powershell', true);
+            core_debug(`Using powershell at path: ${powershellPath}`);
+            yield exec_exec(`"${powershellPath}"`, args);
         }
     });
 }
 function extractZipNix(file, dest) {
     return tool_cache_awaiter(this, void 0, void 0, function* () {
-        const unzipPath = yield io.which('unzip', true);
+        const unzipPath = yield which('unzip', true);
         const args = [file];
-        if (!core.isDebug()) {
+        if (!isDebug()) {
             args.unshift('-q');
         }
         args.unshift('-o'); //overwrite with -o, otherwise a prompt is shown which freezes the run
-        yield exec(`"${unzipPath}"`, args, { cwd: dest });
+        yield exec_exec(`"${unzipPath}"`, args, { cwd: dest });
     });
 }
 /**
@@ -38439,7 +38440,7 @@ const win32_SUPPORTED_VERSIONS = {
 //   "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-ucrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64ucrt-14.0.0-r7.7z",
 // };
 const GCC_RELEASES = {
-    "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64msvcrt-14.0.0-r7.7z",
+    "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64msvcrt-14.0.0-r7.zip",
     "14": "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-12.0.0-msvcrt-r3/winlibs-x86_64-posix-seh-gcc-14.2.0-mingw-w64msvcrt-12.0.0-r3.7z",
     "13": "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0posix-11.0.1-msvcrt-r8/winlibs-x86_64-posix-seh-gcc-13.2.0-mingw-w64msvcrt-11.0.1-r8.7z",
     "12": "https://github.com/brechtsanders/winlibs_mingw/releases/download/12.2.0posix-10.0.0-msvcrt-r5/winlibs-x86_64-posix-seh-gcc-12.2.0-mingw-w64msvcrt-10.0.0-r5.7z",
@@ -38462,13 +38463,14 @@ async function installNative(target, version) {
         lib_core.info(`Downloading GFortran ${version} from ${downloadUrl}`);
         const downloadPath = await downloadTool(downloadUrl);
         lib_core.info(`Extracting GFortran ${version} from ${downloadPath}...`);
-        const extractPath = await extract7z(downloadPath);
+        const extractPath = await extractZip(downloadPath);
         const actualToolDir = external_path_.join(extractPath, "mingw64");
         lib_core.info(`Caching GFortran ${version} in ${actualToolDir}...`);
         toolRoot = await cacheDir(actualToolDir, `gfortran-${target.windowsEnv}`, version, target.arch);
     }
     const binPath = external_path_.join(toolRoot, "bin");
     lib_core.addPath(binPath);
+    lib_core.info(`Setting FC, F77, and F90 environment variables...`);
     const gfortranPath = external_path_.join(binPath, "gfortran.exe");
     lib_core.exportVariable("FC", gfortranPath);
     lib_core.exportVariable("F77", gfortranPath);

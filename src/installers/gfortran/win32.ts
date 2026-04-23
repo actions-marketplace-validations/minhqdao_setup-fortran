@@ -30,7 +30,7 @@ const SUPPORTED_VERSIONS = {
 // };
 
 const GCC_RELEASES: Record<string, string> = {
-  "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64msvcrt-14.0.0-r7.7z",
+  "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64msvcrt-14.0.0-r7.zip",
   "14": "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-12.0.0-msvcrt-r3/winlibs-x86_64-posix-seh-gcc-14.2.0-mingw-w64msvcrt-12.0.0-r3.7z",
   "13": "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0posix-11.0.1-msvcrt-r8/winlibs-x86_64-posix-seh-gcc-13.2.0-mingw-w64msvcrt-11.0.1-r8.7z",
   "12": "https://github.com/brechtsanders/winlibs_mingw/releases/download/12.2.0posix-10.0.0-msvcrt-r5/winlibs-x86_64-posix-seh-gcc-12.2.0-mingw-w64msvcrt-10.0.0-r5.7z",
@@ -61,7 +61,7 @@ async function installNative(target: Target, version: string): Promise<string> {
     const downloadPath = await tc.downloadTool(downloadUrl);
 
     core.info(`Extracting GFortran ${version} from ${downloadPath}...`);
-    const extractPath = await tc.extract7z(downloadPath);
+    const extractPath = await tc.extractZip(downloadPath);
 
     const actualToolDir = path.join(extractPath, "mingw64");
 
@@ -77,6 +77,7 @@ async function installNative(target: Target, version: string): Promise<string> {
   const binPath = path.join(toolRoot, "bin");
   core.addPath(binPath);
 
+  core.info(`Setting FC, F77, and F90 environment variables...`);
   const gfortranPath = path.join(binPath, "gfortran.exe");
   core.exportVariable("FC", gfortranPath);
   core.exportVariable("F77", gfortranPath);
