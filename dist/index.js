@@ -38436,16 +38436,20 @@ const win32_SUPPORTED_VERSIONS = {
         [WindowsEnv.Clang64]: undefined,
     },
 };
-// const GCC_RELEASES: Record<string, string> = {
-//   "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-ucrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64ucrt-14.0.0-r7.7z",
-// };
 const GCC_RELEASES = {
-    "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64msvcrt-14.0.0-r7.zip",
-    "14": "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-12.0.0-msvcrt-r3/winlibs-x86_64-posix-seh-gcc-14.2.0-mingw-w64msvcrt-12.0.0-r3.7z",
-    "13": "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0posix-11.0.1-msvcrt-r8/winlibs-x86_64-posix-seh-gcc-13.2.0-mingw-w64msvcrt-11.0.1-r8.7z",
-    "12": "https://github.com/brechtsanders/winlibs_mingw/releases/download/12.2.0posix-10.0.0-msvcrt-r5/winlibs-x86_64-posix-seh-gcc-12.2.0-mingw-w64msvcrt-10.0.0-r5.7z",
-    "11": "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0posix-9.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-11.2.0-mingw-w64msvcrt-9.0.0-r7.7z",
+    "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-ucrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64ucrt-14.0.0-r7.zip",
+    "14": "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.3.0posix-12.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-14.3.0-mingw-w64ucrt-12.0.0-r1.zip",
+    "13": "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.3.0posix-11.0.1-ucrt-r1/winlibs-x86_64-posix-seh-gcc-13.3.0-mingw-w64ucrt-11.0.1-r1.zip",
+    "12": "https://github.com/brechtsanders/winlibs_mingw/releases/download/12.4.0posix-12.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-12.4.0-mingw-w64ucrt-12.0.0-r1.zip",
+    "11": "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.5.0posix-12.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-11.5.0-mingw-w64ucrt-12.0.0-r1.zip",
 };
+// const GCC_RELEASES: Record<string, string> = {
+//   "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64msvcrt-14.0.0-r7.zip",
+//   "14": "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.3.0posix-12.0.0-msvcrt-r1/winlibs-x86_64-posix-seh-gcc-14.3.0-mingw-w64msvcrt-12.0.0-r1.zip",
+//   "13": "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0posix-11.0.1-msvcrt-r8/winlibs-x86_64-posix-seh-gcc-13.2.0-mingw-w64msvcrt-11.0.1-r8.7z",
+//   "12": "https://github.com/brechtsanders/winlibs_mingw/releases/download/12.2.0posix-10.0.0-msvcrt-r5/winlibs-x86_64-posix-seh-gcc-12.2.0-mingw-w64msvcrt-10.0.0-r5.7z",
+//   "11": "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0posix-9.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-11.2.0-mingw-w64msvcrt-9.0.0-r7.7z",
+// };
 async function installWin32(target) {
     const version = resolveWindowsVersion(target, win32_SUPPORTED_VERSIONS);
     if (target.windowsEnv === WindowsEnv.Native) {
@@ -38479,7 +38483,6 @@ async function installNative(target, version) {
 }
 async function installMSYS2(target) {
     const env = target.windowsEnv;
-    // Guard against Flang environments if we are GFortran-only for now
     if (env === WindowsEnv.Clang64 || env === WindowsEnv.ClangArm64) {
         throw new Error(`GFortran is not available in the ${env} environment. Please use UCRT64, MinGW64, or Native.`);
     }
