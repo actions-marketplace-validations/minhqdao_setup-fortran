@@ -31402,14 +31402,89 @@ async function installAOCC(target) {
 /***/ }),
 
 /***/ 7612:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.installDarwin = installDarwin;
-async function installDarwin(_) {
-    return Promise.reject(new Error("Not implemented"));
+const core = __importStar(__nccwpck_require__(7484));
+const exec = __importStar(__nccwpck_require__(5236));
+const path = __importStar(__nccwpck_require__(6928));
+const types_1 = __nccwpck_require__(6141);
+const resolve_version_1 = __nccwpck_require__(3920);
+const SUPPORTED_VERSIONS = {
+    [types_1.Arch.X64]: ["15", "14", "13", "12", "11"],
+    [types_1.Arch.ARM64]: ["15", "14", "13", "12", "11"],
+};
+async function installDarwin(target) {
+    const version = (0, resolve_version_1.resolveVersion)(target, SUPPORTED_VERSIONS);
+    core.info(`Installing GFortran ${version} on macOS (${target.arch}) via Homebrew...`);
+    const formula = `gcc@${version}`;
+    await exec.exec("brew", ["install", formula]);
+    const brewPrefixOutput = await getBrewPrefix();
+    const binDir = path.join(brewPrefixOutput, "bin");
+    const gfortranBinary = path.join(binDir, `gfortran-${version}`);
+    const genericGfortran = path.join(binDir, "gfortran");
+    core.info(`Symlinking ${gfortranBinary} to ${genericGfortran}`);
+    await exec.exec("ln", ["-sf", gfortranBinary, genericGfortran]);
+    const resolvedVersion = await resolveInstalledVersion();
+    core.info(`GFortran ${resolvedVersion} installed successfully on Darwin.`);
+    return resolvedVersion;
+}
+async function getBrewPrefix() {
+    let output = "";
+    await exec.exec("brew", ["--prefix"], {
+        listeners: { stdout: (data) => (output += data.toString()) },
+    });
+    return output.trim();
+}
+async function resolveInstalledVersion() {
+    let output = "";
+    await exec.exec("gfortran", ["--version"], {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            },
+        },
+    });
+    const match = /\d+\.\d+\.\d+/.exec(output);
+    if (!match)
+        throw new Error(`Could not parse gfortran version from: ${output}`);
+    return match[0];
 }
 
 

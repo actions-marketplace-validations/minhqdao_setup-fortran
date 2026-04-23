@@ -26,7 +26,7 @@
     "lint": "eslint src/**/*.ts",
     "test": "jest",
     "integration-test": "node dist-tests/index.js",
-    "all": "npm run format:check && npm run lint && npm run test && npm run build"
+    "all": "npm run format && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@actions/core": "^2.0.3",
