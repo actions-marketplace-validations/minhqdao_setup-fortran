@@ -37919,14 +37919,14 @@ function downloadToolAttempt(url, dest, auth, headers) {
  */
 function extract7z(file, dest, _7zPath) {
     return tool_cache_awaiter(this, void 0, void 0, function* () {
-        ok(tool_cache_IS_WINDOWS, 'extract7z() not supported on current OS');
-        ok(file, 'parameter "file" is required');
+        (0,external_assert_.ok)(tool_cache_IS_WINDOWS, 'extract7z() not supported on current OS');
+        (0,external_assert_.ok)(file, 'parameter "file" is required');
         dest = yield _createExtractFolder(dest);
         const originalCwd = process.cwd();
         process.chdir(dest);
         if (_7zPath) {
             try {
-                const logLevel = core.isDebug() ? '-bb1' : '-bb0';
+                const logLevel = isDebug() ? '-bb1' : '-bb0';
                 const args = [
                     'x', // eXtract files with full paths
                     logLevel, // -bb[0-3] : set output log level
@@ -37937,15 +37937,14 @@ function extract7z(file, dest, _7zPath) {
                 const options = {
                     silent: true
                 };
-                yield exec(`"${_7zPath}"`, args, options);
+                yield exec_exec(`"${_7zPath}"`, args, options);
             }
             finally {
                 process.chdir(originalCwd);
             }
         }
         else {
-            const escapedScript = path
-                .join(__dirname, '..', 'scripts', 'Invoke-7zdec.ps1')
+            const escapedScript = external_path_.join(__dirname, '..', 'scripts', 'Invoke-7zdec.ps1')
                 .replace(/'/g, "''")
                 .replace(/"|\n|\r/g, ''); // double-up single quotes, remove double quotes and newlines
             const escapedFile = file.replace(/'/g, "''").replace(/"|\n|\r/g, '');
@@ -37965,8 +37964,8 @@ function extract7z(file, dest, _7zPath) {
                 silent: true
             };
             try {
-                const powershellPath = yield io.which('powershell', true);
-                yield exec(`"${powershellPath}"`, args, options);
+                const powershellPath = yield which('powershell', true);
+                yield exec_exec(`"${powershellPath}"`, args, options);
             }
             finally {
                 process.chdir(originalCwd);
@@ -38089,7 +38088,7 @@ function extractZipWin(file, dest) {
         // build the powershell command
         const escapedFile = file.replace(/'/g, "''").replace(/"|\n|\r/g, ''); // double-up single quotes, remove double quotes and newlines
         const escapedDest = dest.replace(/'/g, "''").replace(/"|\n|\r/g, '');
-        const pwshPath = yield which('pwsh', false);
+        const pwshPath = yield io.which('pwsh', false);
         //To match the file overwrite behavior on nix systems, we use the overwrite = true flag for ExtractToDirectory
         //and the -Force flag for Expand-Archive as a fallback
         if (pwshPath) {
@@ -38109,8 +38108,8 @@ function extractZipWin(file, dest) {
                 '-Command',
                 pwshCommand
             ];
-            core_debug(`Using pwsh at path: ${pwshPath}`);
-            yield exec_exec(`"${pwshPath}"`, args);
+            core.debug(`Using pwsh at path: ${pwshPath}`);
+            yield exec(`"${pwshPath}"`, args);
         }
         else {
             const powershellCommand = [
@@ -38129,21 +38128,21 @@ function extractZipWin(file, dest) {
                 '-Command',
                 powershellCommand
             ];
-            const powershellPath = yield which('powershell', true);
-            core_debug(`Using powershell at path: ${powershellPath}`);
-            yield exec_exec(`"${powershellPath}"`, args);
+            const powershellPath = yield io.which('powershell', true);
+            core.debug(`Using powershell at path: ${powershellPath}`);
+            yield exec(`"${powershellPath}"`, args);
         }
     });
 }
 function extractZipNix(file, dest) {
     return tool_cache_awaiter(this, void 0, void 0, function* () {
-        const unzipPath = yield which('unzip', true);
+        const unzipPath = yield io.which('unzip', true);
         const args = [file];
-        if (!isDebug()) {
+        if (!core.isDebug()) {
             args.unshift('-q');
         }
         args.unshift('-o'); //overwrite with -o, otherwise a prompt is shown which freezes the run
-        yield exec_exec(`"${unzipPath}"`, args, { cwd: dest });
+        yield exec(`"${unzipPath}"`, args, { cwd: dest });
     });
 }
 /**
@@ -38423,25 +38422,21 @@ function _unique(values) {
 const win32_SUPPORTED_VERSIONS = {
     [Arch.X64]: {
         [WindowsEnv.Native]: ["15", "14", "13", "12", "11"],
-        [WindowsEnv.UCRT64]: ["15", "14", "13", "12", "11"],
-        [WindowsEnv.Clang64]: ["15", "14", "13", "12", "11"],
+        [WindowsEnv.UCRT64]: undefined,
+        [WindowsEnv.Clang64]: undefined,
         [WindowsEnv.ClangArm64]: undefined,
-        [WindowsEnv.MinGW64]: ["15", "14", "13", "12", "11"],
+        [WindowsEnv.MinGW64]: undefined,
     },
     [Arch.ARM64]: {
-        [WindowsEnv.Native]: ["15", "14", "13", "12", "11"],
+        [WindowsEnv.Native]: undefined,
         [WindowsEnv.UCRT64]: undefined,
         [WindowsEnv.ClangArm64]: undefined,
         [WindowsEnv.MinGW64]: undefined,
         [WindowsEnv.Clang64]: undefined,
     },
 };
-const WINLIBS_RELEASES = {
-    "15": "15.2.0-19.1.7-12.0.0-r1",
-    "14": "14.2.0-18.1.8-12.0.0-r1",
-    "13": "13.2.0-11.0.1-r5",
-    "12": "12.3.0-11.0.0-r3",
-    "11": "11.4.0-11.0.0-r1",
+const GCC_RELEASES = {
+    "15": "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-ucrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64ucrt-14.0.0-r7.7z",
 };
 async function installWin32(target) {
     const version = resolveWindowsVersion(target, win32_SUPPORTED_VERSIONS);
@@ -38450,10 +38445,27 @@ async function installWin32(target) {
     }
     return await installMSYS2(target);
 }
-/**
- * Installs Fortran via MSYS2 (UCRT64, MinGW64)
- * Note: MSYS2 usually only provides the 'latest' version in their main repo.
- */
+async function installNative(target, version) {
+    const downloadUrl = GCC_RELEASES[version];
+    if (!downloadUrl) {
+        throw new Error(`Unsupported GFortran version: ${version}`);
+    }
+    let toolRoot = find(`gfortran-${target.windowsEnv}`, version, target.arch);
+    if (!toolRoot) {
+        lib_core.info(`Downloading GFortran ${version} from ${downloadUrl}`);
+        const downloadPath = await downloadTool(downloadUrl);
+        const extractPath = await extract7z(downloadPath);
+        const actualToolDir = external_path_.join(extractPath, "mingw64");
+        toolRoot = await cacheDir(actualToolDir, `gfortran-${target.windowsEnv}`, version, target.arch);
+    }
+    const binPath = external_path_.join(toolRoot, "bin");
+    lib_core.addPath(binPath);
+    const gfortranPath = external_path_.join(binPath, "gfortran.exe");
+    lib_core.exportVariable("FC", gfortranPath);
+    lib_core.exportVariable("F77", gfortranPath);
+    lib_core.exportVariable("F90", gfortranPath);
+    return await win32_resolveInstalledVersion();
+}
 async function installMSYS2(target) {
     const env = target.windowsEnv;
     // Guard against Flang environments if we are GFortran-only for now
@@ -38464,52 +38476,13 @@ async function installMSYS2(target) {
     const archLabel = target.arch === Arch.X64 ? "x86_64" : "aarch64";
     const subEnv = env === WindowsEnv.UCRT64 ? "ucrt" : "x86_64";
     const pkgName = `mingw-w64-${subEnv}-${archLabel}-gcc-fortran`;
-    // MSYS2 pacman doesn't easily support 'gcc-fortran@11'
-    // It will install the latest available
     await lib_exec.exec("bash", ["-c", `pacman -S --noconfirm --needed ${pkgName}`]);
     const msysBin = external_path_.join("C:", "msys64", env, "bin");
     lib_core.addPath(msysBin);
     return await win32_resolveInstalledVersion();
 }
-async function installNative(target, version) {
-    const archPrefix = target.arch === Arch.X64 ? "x86_64" : "i686";
-    const releaseStr = WINLIBS_RELEASES[version];
-    if (!releaseStr) {
-        throw new Error(`Unsupported native version: ${version}`);
-    }
-    let fileNamePart = releaseStr;
-    if (version === "15" || version === "14") {
-        fileNamePart = releaseStr.replace("-", "-llvm-");
-    }
-    // WinLibs format: winlibs-[arch]-posix-seh-gcc-[releaseStr].zip
-    // Note: GCC 14/15 include LLVM in the release string, GCC 11-13 do not.
-    // The 'releaseStr' provided above already accounts for this.
-    const downloadUrl = `https://github.com/brechtsanders/winlibs_mingw/releases/download/${releaseStr}/winlibs-${archPrefix}-posix-seh-gcc-${fileNamePart}.zip`;
-    let toolRoot = find("gfortran-native", version, archPrefix);
-    if (!toolRoot) {
-        lib_core.info(`Downloading GFortran ${version} from WinLibs...`);
-        const downloadPath = await downloadTool(downloadUrl);
-        // WinLibs usually comes in .zip or .7z. TC handles .zip well.
-        const extractPath = await extractZip(downloadPath);
-        // Identify the internal folder (mingw64 or mingw32)
-        const internalFolder = target.arch === Arch.X64 ? "mingw64" : "mingw32";
-        const actualToolDir = external_path_.join(extractPath, internalFolder);
-        // Cache the extracted mingwXX folder directly
-        toolRoot = await cacheDir(actualToolDir, "gfortran-native", version, archPrefix);
-    }
-    const binPath = external_path_.join(toolRoot, "bin");
-    lib_core.addPath(binPath);
-    // Set standard Fortran environment variables
-    const gfortranPath = external_path_.join(binPath, "gfortran.exe");
-    lib_core.exportVariable("FC", gfortranPath);
-    lib_core.exportVariable("F77", gfortranPath);
-    lib_core.exportVariable("F90", gfortranPath);
-    return await win32_resolveInstalledVersion();
-}
 async function win32_resolveInstalledVersion() {
     let stdout = "";
-    // In Native/WinLibs, it's always gfortran.
-    // Flang is usually only in Clang64 environments.
     const tool = "gfortran";
     try {
         await lib_exec.exec(tool, ["-dumpversion"], {
