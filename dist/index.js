@@ -38516,9 +38516,121 @@ async function installIFort(_) {
     return Promise.reject(new Error("Not implemented"));
 }
 
+;// CONCATENATED MODULE: ./src/installers/nvfortran/debian.ts
+
+
+
+
+// Make sure the versions are always in descending order. The first one will be
+// used as the default if no version was specified by the user.
+// Version scheme: YY.M (e.g. "26.1" = January 2026).
+// Releases ship roughly every two months; only LTS-ish ones listed here.
+const debian_SUPPORTED_VERSIONS = {
+    [Arch.X64]: [
+        "26.3",
+        "26.1",
+        "25.11",
+        "25.9",
+        "25.7",
+        "25.5",
+        "25.3",
+        "25.1",
+        "24.11",
+        "24.9",
+        "24.7",
+        "24.5",
+        "24.3",
+    ],
+    [Arch.ARM64]: [
+        "26.3",
+        "26.1",
+        "25.11",
+        "25.9",
+        "25.7",
+        "25.5",
+        "25.3",
+        "25.1",
+        "24.11",
+        "24.9",
+        "24.7",
+        "24.5",
+        "24.3",
+    ],
+};
+const APT_ARCH = {
+    [Arch.X64]: "amd64",
+    [Arch.ARM64]: "arm64",
+};
+async function debian_installDebian(target) {
+    const version = resolveVersion(target, debian_SUPPORTED_VERSIONS);
+    const aptArch = APT_ARCH[target.arch];
+    lib_core.info(`Installing nvfortran ${version} on Linux (${target.arch})...`);
+    // Add the NVIDIA HPC SDK apt repository if not already present.
+    // Key URL: https://developer.download.nvidia.com/hpc-sdk/ubuntu/DEB-GPG-KEY-NVIDIA-HPC-SDK
+    // Repo URL: https://developer.download.nvidia.com/hpc-sdk/ubuntu/{amd64|arm64}
+    lib_core.info("Adding NVIDIA HPC SDK apt repository...");
+    await lib_exec.exec("bash", [
+        "-c",
+        [
+            `curl -fsSL https://developer.download.nvidia.com/hpc-sdk/ubuntu/DEB-GPG-KEY-NVIDIA-HPC-SDK`,
+            `| sudo gpg --dearmor -o /usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg`,
+        ].join(" "),
+    ]);
+    await lib_exec.exec("bash", [
+        "-c",
+        `echo 'deb [signed-by=/usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg] https://developer.download.nvidia.com/hpc-sdk/ubuntu/${aptArch} /' | sudo tee /etc/apt/sources.list.d/nvhpc.list`,
+    ]);
+    await lib_exec.exec("sudo", ["apt-get", "update", "-y"]);
+    // Package name format: nvhpc-YY-M  (dots replaced by dashes, no leading zeros)
+    // e.g. "26.1" -> "nvhpc-26-1", "25.11" -> "nvhpc-25-11"
+    const pkgVersion = version.replace(".", "-");
+    const pkgName = `nvhpc-${pkgVersion}`;
+    lib_core.info(`Installing apt package ${pkgName}...`);
+    await lib_exec.exec("sudo", [
+        "apt-get",
+        "install",
+        "-y",
+        "--no-install-recommends",
+        pkgName,
+    ]);
+    // NVIDIA installs into /opt/nvidia/hpc_sdk/<arch>/<version>/compilers/bin
+    // arch directory matches uname -s_uname -m convention: Linux_x86_64 / Linux_aarch64
+    const nvArch = target.arch === Arch.X64 ? "Linux_x86_64" : "Linux_aarch64";
+    const installDir = `/opt/nvidia/hpc_sdk/${nvArch}/${version}`;
+    const binDir = `${installDir}/compilers/bin`;
+    lib_core.info(`Adding ${binDir} to PATH...`);
+    lib_core.addPath(binDir);
+    lib_core.exportVariable("FC", "nvfortran");
+    lib_core.exportVariable("CC", "nvc");
+    lib_core.exportVariable("CXX", "nvc++");
+    // Make math/comm libraries findable at runtime.
+    const libDir = `${installDir}/compilers/lib`;
+    const existingLdPath = process.env.LD_LIBRARY_PATH ?? "";
+    lib_core.exportVariable("LD_LIBRARY_PATH", existingLdPath ? `${libDir}:${existingLdPath}` : libDir);
+    const resolvedVersion = await debian_resolveInstalledVersion();
+    lib_core.info(`nvfortran ${resolvedVersion} installed successfully.`);
+    return resolvedVersion;
+}
+async function debian_resolveInstalledVersion() {
+    let output = "";
+    await lib_exec.exec("nvfortran", ["--version"], {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            },
+        },
+    });
+    return output.trim();
+}
+
 ;// CONCATENATED MODULE: ./src/installers/nvfortran/index.ts
-async function installNVFortran(_) {
-    return Promise.reject(new Error("Not implemented"));
+
+
+async function installNVFortran(target) {
+    if (target.os !== OS.Linux) {
+        throw new Error(`NVFortran is only supported on Linux (got: ${target.os})`);
+    }
+    return await debian_installDebian(target);
 }
 
 ;// CONCATENATED MODULE: ./src/installers/aocc/debian.ts
@@ -38531,7 +38643,7 @@ async function installNVFortran(_) {
 
 // Make sure the versions are always in descending order. The first one will be
 // used as the default if no version was specified by the user.
-const debian_SUPPORTED_VERSIONS = {
+const aocc_debian_SUPPORTED_VERSIONS = {
     [Arch.X64]: ["5.1", "5.0", "4.2", "4.1"],
     [Arch.ARM64]: undefined,
 };
@@ -38561,8 +38673,8 @@ const AOCC_RELEASES = {
         installDir: "/opt/AMD/aocc-compiler-4.1.0",
     },
 };
-async function debian_installDebian(target) {
-    const version = resolveVersion(target, debian_SUPPORTED_VERSIONS);
+async function aocc_debian_installDebian(target) {
+    const version = resolveVersion(target, aocc_debian_SUPPORTED_VERSIONS);
     const release = AOCC_RELEASES[version];
     lib_core.info(`Installing AOCC ${version} on Linux (${target.arch})...`);
     if (!external_fs_.existsSync(release.installDir)) {
@@ -38616,11 +38728,11 @@ async function debian_installDebian(target) {
     lib_core.exportVariable("FC", "flang");
     lib_core.exportVariable("CC", "clang");
     lib_core.exportVariable("CXX", "clang++");
-    const resolvedVersion = await debian_resolveInstalledVersion();
+    const resolvedVersion = await aocc_debian_resolveInstalledVersion();
     lib_core.info(`AOCC flang ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
 }
-async function debian_resolveInstalledVersion() {
+async function aocc_debian_resolveInstalledVersion() {
     let output = "";
     await lib_exec.exec("flang", ["--version"], {
         listeners: {
@@ -38639,7 +38751,7 @@ async function installAOCC(target) {
     if (target.os !== OS.Linux) {
         throw new Error(`AOCC is only supported on Linux (got: ${target.os})`);
     }
-    return await debian_installDebian(target);
+    return await aocc_debian_installDebian(target);
 }
 
 ;// CONCATENATED MODULE: ./src/installers/lfortran/index.ts
