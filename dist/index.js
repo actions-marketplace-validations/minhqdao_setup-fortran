@@ -38532,8 +38532,122 @@ async function installNVFortran(_) {
 }
 
 ;// CONCATENATED MODULE: ./src/installers/aocc/debian.ts
-async function debian_installDebian(_) {
-    return Promise.reject(new Error("Not implemented"));
+
+
+
+
+
+
+
+// Make sure the versions are always in descending order. The first one will be
+// used as the default if no version was specified by the user.
+const debian_SUPPORTED_VERSIONS = {
+    [Arch.X64]: ["5.1", "5.0", "4.2", "4.1", "4.0", "3.2"],
+    [Arch.ARM64]: undefined,
+};
+const AOCC_RELEASES = {
+    "5.1": {
+        deb: "aocc-compiler-5.1.0_1_amd64.deb",
+        url: "https://download.amd.com/developer/eula/aocc/aocc-5-1/aocc-compiler-5.1.0_1_amd64.deb",
+        sha256: "42f9ed0713a8fe269d5a5b40b1992a5380ff59b4441e58d38eb9f27df5bfe6df",
+        installDir: "/opt/AMD/aocc-compiler-5.1.0",
+    },
+    "5.0": {
+        deb: "aocc-compiler-5.0.0_1_amd64.deb",
+        url: "https://download.amd.com/developer/eula/aocc/aocc-5-0/aocc-compiler-5.0.0_1_amd64.deb",
+        sha256: "b937b3f19f59ac901a2c3466a80988e0545d53827900eaa5b3c1ad0cd9fdf0c8",
+        installDir: "/opt/AMD/aocc-compiler-5.0.0",
+    },
+    "4.2": {
+        deb: "aocc-compiler-4.2.0_1_amd64.deb",
+        url: "https://download.amd.com/developer/eula/aocc/aocc-4-2/aocc-compiler-4.2.0_1_amd64.deb",
+        sha256: "4c259e959fecd6408157681f81407f3c43572cfd9ad6353ccec570cf7f732db3",
+        installDir: "/opt/AMD/aocc-compiler-4.2.0",
+    },
+    "4.1": {
+        deb: "aocc-compiler-4.1.0_1_amd64.deb",
+        url: "https://download.amd.com/developer/eula/aocc/aocc-4-1/aocc-compiler-4.1.0_1_amd64.deb",
+        sha256: "013ecc70ba7d6a2fb434dc686def95b7f87a41a091cecebc890a5fd68ad83a3e",
+        installDir: "/opt/AMD/aocc-compiler-4.1.0",
+    },
+    "4.0": {
+        deb: "aocc-compiler-4.0.0_1_amd64.deb",
+        url: "https://download.amd.com/developer/eula/aocc/aocc-4-0/aocc-compiler-4.0.0_1_amd64.deb",
+        sha256: "3433e6f3da48e481a4ae00e4f8c990a429492f2d1ab8e5df8e35cd91aae44291",
+        installDir: "/opt/AMD/aocc-compiler-4.0.0",
+    },
+    "3.2": {
+        deb: "aocc-compiler-3.2.0_1_amd64.deb",
+        url: "https://download.amd.com/developer/eula/aocc/aocc-3-2/aocc-compiler-3.2.0_1_amd64.deb",
+        sha256: "98ef7f3007fa40105f2a7fdb94e7f5869495c353f3ec558c32442d9b83f75201",
+        installDir: "/opt/AMD/aocc-compiler-3.2.0",
+    },
+};
+async function debian_installDebian(target) {
+    const version = resolveVersion(target, debian_SUPPORTED_VERSIONS);
+    const release = AOCC_RELEASES[version];
+    lib_core.info(`Installing AOCC ${version} on Linux (${target.arch})...`);
+    if (!external_fs_.existsSync(release.installDir)) {
+        lib_core.info(`Downloading AOCC ${version} from ${release.url}...`);
+        const debPath = await downloadTool(release.url);
+        lib_core.info(`Verifying checksum...`);
+        await lib_exec.exec("bash", [
+            "-c",
+            `echo "${release.sha256}  ${debPath}" | sha256sum -c -`,
+        ]);
+        lib_core.info(`Installing AOCC ${version}...`);
+        await lib_exec.exec("sudo", ["apt-get", "install", "-y", debPath]);
+    }
+    else {
+        lib_core.info(`AOCC ${version} already installed at ${release.installDir}, skipping download.`);
+    }
+    // Source setenv_AOCC.sh and propagate the variables it sets to GITHUB_ENV
+    // so subsequent steps can use the AOCC environment.
+    const setenvScript = external_path_.join(release.installDir, "setenv_AOCC.sh");
+    lib_core.info(`Sourcing ${setenvScript} and exporting environment...`);
+    let envOutput = "";
+    await lib_exec.exec("bash", ["-c", `source "${setenvScript}" && env`], {
+        listeners: {
+            stdout: (data) => {
+                envOutput += data.toString();
+            },
+        },
+    });
+    for (const line of envOutput.split("\n")) {
+        const eqIdx = line.indexOf("=");
+        if (eqIdx === -1)
+            continue;
+        const key = line.substring(0, eqIdx);
+        const val = line.substring(eqIdx + 1);
+        // Only export AOCC/AMD/PATH-related variables
+        if (/^(PATH|LD_LIBRARY_PATH|.*AOCC.*|.*AMD.*)$/i.test(key)) {
+            lib_core.exportVariable(key, val);
+        }
+    }
+    const binDir = external_path_.join(release.installDir, "bin");
+    lib_core.addPath(binDir);
+    lib_core.exportVariable("FC", "flang");
+    lib_core.exportVariable("CC", "clang");
+    lib_core.exportVariable("CXX", "clang++");
+    const resolvedVersion = await debian_resolveInstalledVersion();
+    lib_core.info(`AOCC flang ${resolvedVersion} installed successfully.`);
+    return resolvedVersion;
+}
+async function debian_resolveInstalledVersion() {
+    let output = "";
+    await lib_exec.exec("flang", ["--version"], {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            },
+        },
+    });
+    // flang --version outputs e.g. "AMD clang version 17.0.6 (CLANG: AOCC_5.1.0-Build#1...)"
+    const match = /AOCC_(\d+\.\d+\.\d+)/.exec(output);
+    if (!match)
+        throw new Error(`Could not parse AOCC version from: ${output}`);
+    // Normalize to major.minor (e.g. "5.1.0" -> "5.1")
+    return match[1].split(".").slice(0, 2).join(".");
 }
 
 ;// CONCATENATED MODULE: ./src/installers/aocc/index.ts
