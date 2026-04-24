@@ -7,12 +7,12 @@ on:
 
 jobs:
     build:
-        name: CI
+        name: ci
         uses: ./.github/workflows/ci.yml
 
     integration-tests:
-        name: ${{ matrix.toolchain.compiler }} ${{ matrix.toolchain.version }} ${{
-            matrix.image }} ${{ matrix.toolchain.windowsEnv }}
+        name: ${{ matrix.toolchain.version }} ${{ matrix.image }} ${{
+            matrix.toolchain.windowsEnv }}
         runs-on: ${{ matrix.image }}
         needs: [ build ]
         strategy:

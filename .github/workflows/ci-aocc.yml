@@ -7,7 +7,7 @@ on:
 
 jobs:
     build:
-        name: CI
+        name: ci
         uses: ./.github/workflows/ci.yml
 
     integration-tests:
