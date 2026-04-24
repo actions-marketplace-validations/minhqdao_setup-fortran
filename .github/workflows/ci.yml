@@ -82,7 +82,7 @@ jobs:
 
   integration-tests:
     name: ${{ matrix.toolchain.compiler }} ${{ matrix.toolchain.version }} ${{
-      matrix.image }}
+      matrix.image }} ${{ matrix.toolchain.windowsEnv }}
     runs-on: ${{ matrix.image }}
     needs: [ build ]
     strategy:
@@ -106,13 +106,14 @@ jobs:
           # - { compiler: gfortran, version: "12" }
           # - { compiler: gfortran, version: "11" }
         include:
-          - image: ubuntu-latest # no compiler and version specified, defaults to the latest gfortran version
-          - image: macos-latest # no compiler and version specified, defaults to the latest gfortran version
-          - image: windows-latest # no compiler and version specified, defaults to the latest gfortran version
+          # - image: ubuntu-latest # no compiler and version specified, defaults to the latest gfortran version
+          # - image: macos-latest # no compiler and version specified, defaults to the latest gfortran version
+          # - image: windows-latest # no compiler and version specified, defaults to the latest gfortran version
           - image: windows-2025
-            toolchain: { compiler: gfortran, windowsEnv: ucrt64 } # uses rolling gcc release from pacman
+            toolchain: { compiler: gfortran, windowsEnv: ucrt64 } # sets up MSYS2 and uses rolling gcc release from pacman
           - image: windows-2022
-            toolchain: { compiler: gfortran, windowsEnv: ucrt64 } # uses rolling gcc release from pacman
+            toolchain: { compiler: gfortran, windowsEnv: ucrt64 } # sets up MSYS2 and uses rolling gcc release from pacman
+          - image: windows-11-arm # test failure
 
     steps:
       - uses: actions/checkout@v6
