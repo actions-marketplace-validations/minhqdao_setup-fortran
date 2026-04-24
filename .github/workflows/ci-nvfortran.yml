@@ -22,7 +22,20 @@ jobs:
 
                 toolchain:
                     - { compiler: nvfortran, version: "26.3" }
-                    # - { compiler: nvfortran, version: "26.1" }
+                    - { compiler: nvfortran, version: "26.1" }
+                    - { compiler: nvfortran, version: "25.11" }
+                    - { compiler: nvfortran, version: "25.9" }
+                    - { compiler: nvfortran, version: "25.7" }
+                    - { compiler: nvfortran, version: "25.5" }
+                    - { compiler: nvfortran, version: "25.3" }
+                    - { compiler: nvfortran, version: "25.1" }
+                    - { compiler: nvfortran, version: "24.11" }
+                    - { compiler: nvfortran, version: "24.9" }
+                    - { compiler: nvfortran, version: "24.7" }
+                    - { compiler: nvfortran, version: "24.5" }
+                    - { compiler: nvfortran, version: "24.3" }
+                    - { compiler: nvfortran, version: "24.1" }
+                    - { compiler: nvfortran, version: "23.11" }
 
         steps:
             - uses: actions/checkout@v6

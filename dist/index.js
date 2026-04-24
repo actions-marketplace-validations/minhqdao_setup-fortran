@@ -38540,6 +38540,8 @@ const debian_SUPPORTED_VERSIONS = {
         "24.7",
         "24.5",
         "24.3",
+        "24.1",
+        "23.11",
     ],
     [Arch.ARM64]: [
         "26.3",
@@ -38555,6 +38557,8 @@ const debian_SUPPORTED_VERSIONS = {
         "24.7",
         "24.5",
         "24.3",
+        "24.1",
+        "23.11",
     ],
 };
 const APT_ARCH = {
