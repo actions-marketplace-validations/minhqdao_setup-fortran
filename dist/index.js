@@ -99616,21 +99616,41 @@ async function installAOCC(target) {
 //   - LLVM 17 introduced the F18-based rewrite shipped as `flang-new`.
 //     Versions <= 16 ship the classic Flang binary as `flang`.
 //   - LLVM 22 is in pre-release as of early 2026.
-//   - ARM64: LLVM 15/16 apt repos were never published for noble (24.04), and
-//     on jammy (22.04) the classic Flang package does not install a versioned
-//     binary in /usr/bin, only the bare `flang` binary. Both issues are moot
-//     for >= 17, which ships correctly on all supported Ubuntu releases.
+//   - ARM64 on jammy (22.04): LLVM 15/16 packages exist but do not install a
+//     versioned binary in /usr/bin, only the bare `flang` binary, causing
+//     update-alternatives to fail. Excluded from arm64 support.
+//   - ARM64 on noble (24.04): LLVM 15/16 apt repos were never published.
+//     Excluded for the same reason.
 const flang_debian_SUPPORTED_VERSIONS = {
-    [Arch.X64]: ["22", "21", "20", "19", "18", "17", "16", "15", "14", "13"],
-    [Arch.ARM64]: ["22", "21", "20", "19", "18", "17"],
+    [Arch.X64]: ["22", "21", "20", "19", "18", "17", "16", "15", "14"],
+    [Arch.ARM64]: ["22", "21", "20", "19", "18", "17", "16"],
 };
-// Starting from LLVM 17 the rewritten Flang ships as `flang-new`.
-// Classic Flang (<= 16) used just `flang`.
-function flangBinary(version) {
-    return parseInt(version, 10) >= 17 ? "flang-new" : "flang";
+// Returns the Ubuntu codename (e.g. "jammy", "noble").
+async function getUbuntuCodename() {
+    let output = "";
+    await lib_exec.exec("lsb_release", ["-cs"], {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            },
+        },
+    });
+    return output.trim();
 }
 async function flang_debian_installDebian(target) {
     const version = resolveVersion(target, flang_debian_SUPPORTED_VERSIONS);
+    const major = parseInt(version, 10);
+    // LLVM 15/16 apt repos were never published for noble (24.04) on either
+    // arch. Catch this early with a clear error rather than a confusing apt
+    // failure mid-install.
+    if (major <= 16) {
+        const codename = await getUbuntuCodename();
+        if (codename === "noble") {
+            throw new Error(`Flang ${version} is not available on Ubuntu 24.04 (noble): ` +
+                `apt.llvm.org has no repository for llvm-toolchain-noble-${version}. ` +
+                `Use LLVM 17 or later on Ubuntu 24.04.`);
+        }
+    }
     lib_core.info(`Installing Flang ${version} on Linux (${target.arch})...`);
     lib_core.info(`Adding LLVM ${version} apt repository via apt.llvm.org...`);
     await lib_exec.exec("bash", [
@@ -99643,40 +99663,44 @@ async function flang_debian_installDebian(target) {
     const pkgName = `flang-${version}`;
     lib_core.info(`Installing apt package ${pkgName}...`);
     await lib_exec.exec("sudo", ["apt-get", "install", "-y", pkgName]);
-    // Register the versioned binary under the generic `flang` name via
-    // update-alternatives so that users can always call `flang` regardless of
-    // which LLVM major is installed.
-    //
-    // Preferred target: the versioned binary (e.g. `flang-new-18`, `flang-16`).
-    // Fallback: the unversioned binary (e.g. `flang-new`, `flang`). Older LLVM
-    // packages on arm64 did not install versioned symlinks in /usr/bin, so we
-    // probe first and use whatever is actually present.
-    const major = parseInt(version, 10);
-    const versionedBin = major >= 17 ? `/usr/bin/flang-new-${version}` : `/usr/bin/flang-${version}`;
-    const unversionedBin = major >= 17 ? `/usr/bin/flang-new` : `/usr/bin/flang`;
-    const alternativePath = external_fs_.existsSync(versionedBin)
-        ? versionedBin
-        : unversionedBin;
-    lib_core.info(`Registering update-alternatives using ${alternativePath}...`);
+    // Binaries live under /usr/lib/llvm-<version>/bin/ which is stable and
+    // version-isolated, regardless of what symlinks are (or aren't) created in
+    // /usr/bin by the package. This avoids the self-symlink failure that occurs
+    // when older packages drop a bare `flang` in /usr/bin without a versioned
+    // counterpart.
+    const llvmBinDir = `/usr/lib/llvm-${version}/bin`;
+    const binaryName = major >= 17 ? "flang-new" : "flang";
+    const binaryPath = `${llvmBinDir}/${binaryName}`;
+    if (!external_fs_.existsSync(binaryPath)) {
+        throw new Error(`Flang binary not found at expected path: ${binaryPath}. ` +
+            `The package may not include flang for this platform.`);
+    }
+    // Register the versioned binary under the generic `flang` name so that
+    // users can always call `flang` regardless of which LLVM major is installed.
+    lib_core.info(`Registering update-alternatives: /usr/bin/flang -> ${binaryPath}`);
     await lib_exec.exec("sudo", [
         "update-alternatives",
         "--install",
         "/usr/bin/flang",
         "flang",
-        alternativePath,
+        binaryPath,
         "100",
     ]);
+    // Also add the llvm bin dir to PATH so that other versioned tools
+    // (e.g. flang-new-22, clang-22) are reachable without qualification.
+    lib_core.addPath(llvmBinDir);
     lib_core.exportVariable("FC", "flang");
     lib_core.exportVariable("CC", `clang-${version}`);
     lib_core.exportVariable("CXX", `clang++-${version}`);
-    const resolvedVersion = await flang_debian_resolveInstalledVersion(version);
+    const resolvedVersion = await flang_debian_resolveInstalledVersion();
     lib_core.info(`Flang ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
 }
-async function flang_debian_resolveInstalledVersion(version) {
+async function flang_debian_resolveInstalledVersion() {
     let output = "";
-    const binary = flangBinary(version);
-    await lib_exec.exec(binary, ["--version"], {
+    // By this point /usr/bin/flang is set up via update-alternatives, so we
+    // can always call the unversioned `flang` binary.
+    await lib_exec.exec("flang", ["--version"], {
         listeners: {
             stdout: (data) => {
                 output += data.toString();

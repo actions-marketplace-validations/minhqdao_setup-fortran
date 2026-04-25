@@ -37,6 +37,11 @@ describe("installDebian (Flang)", () => {
     jest.clearAllMocks();
     mockedFs.existsSync.mockReturnValue(true);
     mockedExec.mockImplementation(async (commandLine, args, options) => {
+      if (commandLine === "lsb_release" && args?.[0] === "-cs") {
+        if (options?.listeners?.stdout) {
+          options.listeners.stdout(Buffer.from("jammy"));
+        }
+      }
       if (
         (commandLine === "flang-new" || commandLine === "flang") &&
         args?.[0] === "--version"
@@ -69,6 +74,22 @@ describe("installDebian (Flang)", () => {
     ]);
   });
 
+  it("throws error for Flang <= 16 on Ubuntu 24.04 (noble)", async () => {
+    mockedExec.mockImplementation(async (commandLine, args, options) => {
+      if (commandLine === "lsb_release" && args?.[0] === "-cs") {
+        if (options?.listeners?.stdout) {
+          options.listeners.stdout(Buffer.from("noble"));
+        }
+      }
+      return 0;
+    });
+
+    const target = { ...baseTarget, version: "16" };
+    await expect(installDebian(target)).rejects.toThrow(
+      "Flang 16 is not available on Ubuntu 24.04 (noble)",
+    );
+  });
+
   it("configures update-alternatives for flang-new (>= 17)", async () => {
     const target = { ...baseTarget, version: "17" };
     await installDebian(target);
@@ -78,7 +99,7 @@ describe("installDebian (Flang)", () => {
       "--install",
       "/usr/bin/flang",
       "flang",
-      "/usr/bin/flang-new-17",
+      "/usr/lib/llvm-17/bin/flang-new",
       "100",
     ]);
   });
@@ -92,14 +113,15 @@ describe("installDebian (Flang)", () => {
       "--install",
       "/usr/bin/flang",
       "flang",
-      "/usr/bin/flang-16",
+      "/usr/lib/llvm-16/bin/flang",
       "100",
     ]);
   });
 
-  it("exports environment variables", async () => {
+  it("exports environment variables and adds to PATH", async () => {
     await installDebian(baseTarget);
 
+    expect(core.addPath).toHaveBeenCalledWith("/usr/lib/llvm-18/bin");
     expect(mockedExportVariable).toHaveBeenCalledWith("FC", "flang");
     expect(mockedExportVariable).toHaveBeenCalledWith("CC", "clang-18");
     expect(mockedExportVariable).toHaveBeenCalledWith("CXX", "clang++-18");
