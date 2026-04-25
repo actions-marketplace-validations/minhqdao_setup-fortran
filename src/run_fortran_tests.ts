@@ -2,15 +2,20 @@ import * as exec from "@actions/exec";
 import * as core from "@actions/core";
 import * as path from "path";
 import * as fs from "fs";
-import { parseInputs } from "./parse_inputs";
 import { Compiler } from "./types";
 
 async function run(): Promise<void> {
   const buildDir = path.join(process.cwd(), "test_build");
 
   try {
-    const target = parseInputs();
-    const fc = target.compiler;
+    const fc = process.env.FC;
+
+    if (!fc) {
+      throw new Error(
+        "FC environment variable is not set. Please fix the installer.",
+      );
+    }
+
     const testDir = path.join(process.cwd(), "fortran_tests");
 
     if (!fs.existsSync(buildDir)) {
