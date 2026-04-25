@@ -4,6 +4,7 @@ import * as path from "path";
 import * as tc from "@actions/tool-cache";
 import { Arch, LATEST, WindowsEnv, type Target } from "../../types";
 import { resolveWindowsVersion } from "../../resolve_version";
+import { setupMSYS2 } from "../../setup_msys2";
 
 const SUPPORTED_VERSIONS = {
   [Arch.X64]: {
@@ -78,31 +79,12 @@ async function installNative(target: Target, version: string): Promise<string> {
 }
 
 async function installMSYS2(target: Target): Promise<string> {
-  const pkgName = "mingw-w64-ucrt-x86_64-gcc-fortran";
-  core.info(`Installing ${pkgName} via MSYS2 pacman (${target.windowsEnv})...`);
+  await setupMSYS2(target.windowsEnv, ["gcc-fortran"]);
 
-  await exec.exec("C:\\msys64\\usr\\bin\\bash.exe", [
-    "-lc",
-    `pacman -S --noconfirm --needed ${pkgName}`,
-  ]);
-
-  const msysRoot = path.join("C:", "msys64", target.windowsEnv);
-  const msysBin = path.join(msysRoot, "bin");
-  const msysLib = path.join(msysRoot, "lib");
-
-  // Add both bin (executables + DLLs) to PATH
-  core.addPath(msysBin);
-
-  // Set MSYS2 environment variables so shells and tools behave correctly
-  core.exportVariable("MSYSTEM", target.windowsEnv.toUpperCase()); // "UCRT64"
-  core.exportVariable("MSYS2_PATH_TYPE", "inherit");
-
-  // Library and pkg-config paths
-  core.exportVariable("PKG_CONFIG_PATH", path.join(msysLib, "pkgconfig"));
-
-  // Standard Fortran compiler variables
-  core.info(`Setting FC, F77, F90, CC, and CXX environment variables...`);
+  const msysBin = path.join("C:\\msys64", target.windowsEnv, "bin");
   const gfortranPath = path.join(msysBin, "gfortran.exe");
+
+  core.info(`Setting FC, F77, and F90 environment variables...`);
   core.exportVariable("FC", gfortranPath);
   core.exportVariable("F77", gfortranPath);
   core.exportVariable("F90", gfortranPath);

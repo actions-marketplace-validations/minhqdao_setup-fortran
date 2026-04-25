@@ -38402,7 +38402,44 @@ function _unique(values) {
     return Array.from(new Set(values));
 }
 //# sourceMappingURL=tool-cache.js.map
+;// CONCATENATED MODULE: ./src/setup_msys2.ts
+
+
+
+
+const MSYS2_ROOT = "C:\\msys64";
+const PKG_PREFIX = {
+    [WindowsEnv.UCRT64]: "mingw-w64-ucrt-x86_64",
+};
+async function setupMSYS2(windowsEnv, packages) {
+    if (packages.length === 0)
+        return;
+    const pkgList = packages
+        .map((pkg) => msys2PkgName(windowsEnv, pkg))
+        .join(" ");
+    lib_core.info(`Installing MSYS2 packages (${windowsEnv}): ${pkgList}`);
+    await lib_exec.exec("C:\\msys64\\usr\\bin\\bash.exe", [
+        "-lc",
+        `pacman -S --noconfirm --needed ${pkgList}`,
+    ]);
+    const msysRoot = external_path_.join(MSYS2_ROOT, windowsEnv);
+    const msysBin = external_path_.join(msysRoot, "bin");
+    const msysLib = external_path_.join(msysRoot, "lib");
+    lib_core.addPath(msysBin);
+    lib_core.exportVariable("MSYSTEM", windowsEnv.toUpperCase());
+    lib_core.exportVariable("MSYS2_PATH_TYPE", "inherit");
+    lib_core.exportVariable("PKG_CONFIG_PATH", external_path_.join(msysLib, "pkgconfig"));
+}
+function msys2PkgName(windowsEnv, pkg) {
+    const prefix = PKG_PREFIX[windowsEnv];
+    if (!prefix) {
+        throw new Error(`No MSYS2 package prefix known for environment: ${windowsEnv}`);
+    }
+    return `${prefix}-${pkg}`;
+}
+
 ;// CONCATENATED MODULE: ./src/installers/gfortran/win32.ts
+
 
 
 
@@ -38460,25 +38497,10 @@ async function installNative(target, version) {
     return await win32_resolveInstalledVersion();
 }
 async function installMSYS2(target) {
-    const pkgName = "mingw-w64-ucrt-x86_64-gcc-fortran";
-    lib_core.info(`Installing ${pkgName} via MSYS2 pacman (${target.windowsEnv})...`);
-    await lib_exec.exec("C:\\msys64\\usr\\bin\\bash.exe", [
-        "-lc",
-        `pacman -S --noconfirm --needed ${pkgName}`,
-    ]);
-    const msysRoot = external_path_.join("C:", "msys64", target.windowsEnv);
-    const msysBin = external_path_.join(msysRoot, "bin");
-    const msysLib = external_path_.join(msysRoot, "lib");
-    // Add both bin (executables + DLLs) to PATH
-    lib_core.addPath(msysBin);
-    // Set MSYS2 environment variables so shells and tools behave correctly
-    lib_core.exportVariable("MSYSTEM", target.windowsEnv.toUpperCase()); // "UCRT64"
-    lib_core.exportVariable("MSYS2_PATH_TYPE", "inherit");
-    // Library and pkg-config paths
-    lib_core.exportVariable("PKG_CONFIG_PATH", external_path_.join(msysLib, "pkgconfig"));
-    // Standard Fortran compiler variables
-    lib_core.info(`Setting FC, F77, F90, CC, and CXX environment variables...`);
+    await setupMSYS2(target.windowsEnv, ["gcc-fortran"]);
+    const msysBin = external_path_.join("C:\\msys64", target.windowsEnv, "bin");
     const gfortranPath = external_path_.join(msysBin, "gfortran.exe");
+    lib_core.info(`Setting FC, F77, and F90 environment variables...`);
     lib_core.exportVariable("FC", gfortranPath);
     lib_core.exportVariable("F77", gfortranPath);
     lib_core.exportVariable("F90", gfortranPath);
