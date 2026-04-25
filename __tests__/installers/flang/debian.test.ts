@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
+import * as fs from "fs";
 import { installDebian } from "../../../src/installers/flang/debian";
 import {
   Arch,
@@ -11,9 +12,14 @@ import {
 
 jest.mock("@actions/core");
 jest.mock("@actions/exec");
+jest.mock("fs", () => ({
+  ...jest.requireActual("fs"),
+  existsSync: jest.fn(),
+}));
 
 describe("installDebian (Flang)", () => {
   const mockedExec = exec.exec as jest.MockedFunction<typeof exec.exec>;
+  const mockedFs = fs as jest.Mocked<typeof fs>;
   const mockedExportVariable = core.exportVariable as jest.MockedFunction<
     typeof core.exportVariable
   >;
@@ -29,6 +35,7 @@ describe("installDebian (Flang)", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedFs.existsSync.mockReturnValue(true);
     mockedExec.mockImplementation(async (commandLine, args, options) => {
       if (
         (commandLine === "flang-new" || commandLine === "flang") &&
