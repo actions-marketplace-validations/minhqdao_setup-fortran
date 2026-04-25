@@ -99727,8 +99727,105 @@ async function flang_debian_resolveInstalledVersion() {
 }
 
 ;// CONCATENATED MODULE: ./src/installers/flang/darwin.ts
-async function darwin_installDarwin(_) {
-    return Promise.reject(new Error("Not implemented"));
+
+
+
+
+
+// macOS support notes:
+//
+//   ARM64 (macos-14 sonoma, macos-15 sequoia, macos-26 tahoe):
+//     `brew install flang` installs prebuilt bottles on all three. Supported.
+//
+//   Intel x64 (macos-15-intel sequoia, macos-26-intel tahoe):
+//     The flang Homebrew formula has a prebuilt Intel bottle for Sonoma only.
+//     Sequoia and Tahoe have no Intel bottle; installation would require
+//     building LLVM from source (~hours). Not viable in CI.
+//
+// Version selection is not possible on macOS: the `flang` formula is
+// unversioned and always tracks the latest LLVM release. The versioned
+// `llvm@N` formulae exist but do not include flang as a built component.
+// Any version input is accepted and silently ignored; an info message
+// explains this so users copying a Linux workflow aren't surprised.
+const flang_darwin_SUPPORTED_VERSIONS = {
+    [Arch.ARM64]: [LATEST],
+    [Arch.X64]: undefined,
+};
+async function darwin_installDarwin(target) {
+    if (target.arch === Arch.X64) {
+        throw new Error(`Flang is not supported on Intel macOS runners (macos-15-intel, macos-26-intel). ` +
+            `The Homebrew flang formula has no prebuilt bottle for Intel on macOS 15 (sequoia) ` +
+            `or macOS 26 (tahoe), and building LLVM from source is not viable in CI. ` +
+            `Use an ARM64 runner instead (macos-14, macos-15, macos-26).`);
+    }
+    resolveVersion(target, flang_darwin_SUPPORTED_VERSIONS);
+    lib_core.info(`Installing Flang on macOS (${target.arch}) via Homebrew...`);
+    lib_core.info(`Note: the Homebrew flang formula is unversioned — the latest available ` +
+        `release will be installed regardless of any version input.`);
+    await lib_exec.exec("brew", ["install", "flang"]);
+    const brewPrefix = await darwin_getBrewPrefix();
+    const flangOptDir = external_path_.join(brewPrefix, "opt", "flang");
+    const binDir = external_path_.join(flangOptDir, "bin");
+    lib_core.addPath(binDir);
+    const flangBin = await resolveFlangBinary(binDir);
+    lib_core.info(`Using flang binary: ${flangBin}`);
+    const llvmBinDir = external_path_.join(brewPrefix, "opt", "llvm", "bin");
+    lib_core.exportVariable("FC", flangBin);
+    lib_core.exportVariable("CC", external_path_.join(llvmBinDir, "clang"));
+    lib_core.exportVariable("CXX", external_path_.join(llvmBinDir, "clang++"));
+    const libDir = external_path_.join(flangOptDir, "lib");
+    const existingLibPath = process.env.LIBRARY_PATH ?? "";
+    lib_core.exportVariable("LIBRARY_PATH", existingLibPath ? `${libDir}:${existingLibPath}` : libDir);
+    let sdkPath = "";
+    try {
+        await lib_exec.exec("xcrun", ["--show-sdk-path"], {
+            listeners: {
+                stdout: (data) => {
+                    sdkPath += data.toString().trim();
+                },
+            },
+        });
+        if (sdkPath)
+            lib_core.exportVariable("SDKROOT", sdkPath);
+    }
+    catch (e) {
+        const error = e instanceof Error ? e.message : String(e);
+        lib_core.warning(`Could not determine SDKROOT via xcrun: ${error}`);
+    }
+    const resolvedVersion = await flang_darwin_resolveInstalledVersion(flangBin);
+    lib_core.info(`Flang ${resolvedVersion} installed successfully on macOS.`);
+    return resolvedVersion;
+}
+async function resolveFlangBinary(binDir) {
+    const fs = await Promise.resolve(/* import() */).then(__nccwpck_require__.t.bind(__nccwpck_require__, 9896, 23));
+    for (const name of ["flang", "flang-new"]) {
+        const candidate = external_path_.join(binDir, name);
+        if (fs.existsSync(candidate))
+            return candidate;
+    }
+    throw new Error(`Could not find flang binary in ${binDir}. Checked: flang, flang-new.`);
+}
+async function darwin_getBrewPrefix() {
+    let output = "";
+    await lib_exec.exec("brew", ["--prefix"], {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            },
+        },
+    });
+    return output.trim();
+}
+async function flang_darwin_resolveInstalledVersion(flangBin) {
+    let output = "";
+    await lib_exec.exec(flangBin, ["--version"], {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            },
+        },
+    });
+    return output.trim();
 }
 
 ;// CONCATENATED MODULE: ./src/installers/flang/win32.ts
