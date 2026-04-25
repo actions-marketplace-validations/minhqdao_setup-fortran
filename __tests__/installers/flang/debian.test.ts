@@ -37,11 +37,6 @@ describe("installDebian (Flang)", () => {
     jest.clearAllMocks();
     mockedFs.existsSync.mockReturnValue(true);
     mockedExec.mockImplementation(async (commandLine, args, options) => {
-      if (commandLine === "lsb_release" && args?.[0] === "-cs") {
-        if (options?.listeners?.stdout) {
-          options.listeners.stdout(Buffer.from("jammy"));
-        }
-      }
       if (
         (commandLine === "flang-new" || commandLine === "flang") &&
         args?.[0] === "--version"
@@ -74,23 +69,7 @@ describe("installDebian (Flang)", () => {
     ]);
   });
 
-  it("throws error for Flang <= 16 on Ubuntu 24.04 (noble)", async () => {
-    mockedExec.mockImplementation(async (commandLine, args, options) => {
-      if (commandLine === "lsb_release" && args?.[0] === "-cs") {
-        if (options?.listeners?.stdout) {
-          options.listeners.stdout(Buffer.from("noble"));
-        }
-      }
-      return 0;
-    });
-
-    const target = { ...baseTarget, version: "16" };
-    await expect(installDebian(target)).rejects.toThrow(
-      "Flang 16 is not available on Ubuntu 24.04 (noble)",
-    );
-  });
-
-  it("configures update-alternatives for flang-new (>= 17)", async () => {
+  it("configures update-alternatives for flang-new (15 <= major < 20)", async () => {
     const target = { ...baseTarget, version: "17" };
     await installDebian(target);
 
@@ -104,8 +83,8 @@ describe("installDebian (Flang)", () => {
     ]);
   });
 
-  it("configures update-alternatives for flang (<= 16)", async () => {
-    const target = { ...baseTarget, version: "16" };
+  it("configures update-alternatives for flang (major >= 20)", async () => {
+    const target = { ...baseTarget, version: "20" };
     await installDebian(target);
 
     expect(mockedExec).toHaveBeenCalledWith("sudo", [
@@ -113,7 +92,7 @@ describe("installDebian (Flang)", () => {
       "--install",
       "/usr/bin/flang",
       "flang",
-      "/usr/lib/llvm-16/bin/flang",
+      "/usr/lib/llvm-20/bin/flang",
       "100",
     ]);
   });
@@ -125,6 +104,10 @@ describe("installDebian (Flang)", () => {
     expect(mockedExportVariable).toHaveBeenCalledWith("FC", "flang");
     expect(mockedExportVariable).toHaveBeenCalledWith("CC", "clang-18");
     expect(mockedExportVariable).toHaveBeenCalledWith("CXX", "clang++-18");
+    expect(mockedExportVariable).toHaveBeenCalledWith(
+      "LIBRARY_PATH",
+      "/usr/lib/llvm-18/lib",
+    );
   });
 
   it("resolves and returns the installed version", async () => {

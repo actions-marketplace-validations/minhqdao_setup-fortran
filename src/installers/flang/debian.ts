@@ -12,76 +12,63 @@ import type { Target } from "../../types";
 //   - Only major versions are meaningful here: neither llvm.sh nor the apt
 //     repository accept minor/patch versions, so the installed patch is always
 //     whatever the LLVM apt repo currently serves for that major.
-//   - LLVM 17 introduced the F18-based rewrite shipped as `flang-new`.
-//     Versions <= 16 ship the classic Flang binary as `flang`.
-//   - LLVM 22 is in pre-release as of early 2026.
+//   - Binary naming history:
+//       LLVM 15–16: binary is `flang-new` (F18 rewrite, still under the old name)
+//       LLVM 17–19: binary is `flang-new` (same, stabilised)
+//       LLVM 20+:   binary renamed to `flang` (flang-new still present as alias)
 //   - ARM64: LLVM 15/16 have no noble (24.04) repo and broken jammy (22.04)
 //     packaging. 17 is the effective floor on arm64.
-//   - X64: LLVM 15/16 are available on jammy (22.04) only. Noble (24.04) has
-//     no repo for these versions; caught below with an early error.
+//   - X64: LLVM 15/16 are available on jammy (22.04) only; no noble repo.
 const SUPPORTED_VERSIONS = {
   [Arch.X64]: ["22", "21", "20", "19", "18", "17", "16", "15"],
   [Arch.ARM64]: ["22", "21", "20", "19", "18", "17"],
 } as const satisfies Record<Arch, readonly string[]>;
 
-// Returns the Ubuntu codename (e.g. "jammy", "noble").
-async function getUbuntuCodename(): Promise<string> {
-  let output = "";
-  await exec.exec("lsb_release", ["-cs"], {
-    listeners: {
-      stdout: (data: Buffer) => {
-        output += data.toString();
-      },
-    },
-  });
-  return output.trim();
+// Returns the name of the canonical flang binary for a given major version.
+// This reflects the upstream rename from `flang-new` to `flang` in LLVM 20.
+function flangBinaryName(major: number): string {
+  return major >= 20 ? "flang" : "flang-new";
 }
 
-// Resolves the on-disk path of the flang binary for the given major version.
-// LLVM packages are inconsistent about where they install the binary:
-//   - LLVM >= 17: reliably at /usr/lib/llvm-<version>/bin/flang-new
-//   - LLVM <= 16: should be at /usr/lib/llvm-<version>/bin/flang, but older
-//     or arm64 packages may only drop a bare /usr/bin/flang with no versioned
-//     counterpart anywhere.
-// We probe in preference order and throw if nothing is found.
+// Resolves the on-disk path of the flang binary after installation.
+//
+// The apt packages install the real binary under /usr/lib/llvm-<N>/bin/ and
+// create symlinks in /usr/bin. The symlink names vary by version and platform:
+//
+//   LLVM 15–16: packaging is inconsistent — /usr/lib/llvm-N/bin/flang-new
+//               exists on some platforms but /usr/bin may only have a bare
+//               `flang` or nothing versioned at all.
+//   LLVM 17–19: /usr/lib/llvm-N/bin/flang-new is reliable.
+//   LLVM 20+:   /usr/lib/llvm-N/bin/flang is the real binary;
+//               flang-new is a symlink to it.
+//
+// We probe the most reliable locations first.
 function resolveFlangBinaryPath(major: number, version: string): string {
-  const candidates =
-    major >= 17
-      ? [`/usr/lib/llvm-${version}/bin/flang-new`]
-      : [
-          `/usr/lib/llvm-${version}/bin/flang`,
-          `/usr/bin/flang-${version}`,
-          `/usr/bin/flang`,
-        ];
+  const binaryName = flangBinaryName(major);
+
+  const candidates = [
+    `/usr/lib/llvm-${version}/bin/${binaryName}`, // most reliable across all versions
+    `/usr/bin/${binaryName}-${version}`, // versioned symlink in /usr/bin
+    `/usr/bin/flang-new-${version}`, // fallback for 15/16 on some platforms
+    `/usr/bin/flang`, // last-resort bare path (15/16 jammy)
+  ];
 
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
+      core.info(`Found flang binary at: ${candidate}`);
       return candidate;
     }
   }
 
   throw new Error(
-    `Flang binary not found in any expected location for LLVM ${version}: ` +
-      candidates.join(", "),
+    `Flang binary not found in any expected location for LLVM ${version}. Checked:\n` +
+      candidates.map((c) => `  ${c}`).join("\n"),
   );
 }
 
 export async function installDebian(target: Target): Promise<string> {
   const version = resolveVersion(target, SUPPORTED_VERSIONS);
   const major = parseInt(version, 10);
-
-  // LLVM 15/16 apt repos were never published for noble (24.04).
-  // Catch this early with a clear error rather than a confusing apt failure.
-  if (major <= 16) {
-    const codename = await getUbuntuCodename();
-    if (codename === "noble") {
-      throw new Error(
-        `Flang ${version} is not available on Ubuntu 24.04 (noble): ` +
-          `apt.llvm.org has no repository for llvm-toolchain-noble-${version}. ` +
-          `Use LLVM 17 or later on Ubuntu 24.04.`,
-      );
-    }
-  }
 
   core.info(`Installing Flang ${version} on Linux (${target.arch})...`);
 
@@ -99,11 +86,15 @@ export async function installDebian(target: Target): Promise<string> {
   await exec.exec("sudo", ["apt-get", "install", "-y", pkgName]);
 
   const binaryPath = resolveFlangBinaryPath(major, version);
-  core.info(`Registering update-alternatives: /usr/bin/flang -> ${binaryPath}`);
 
-  // Skip registration if /usr/bin/flang is the binary itself (bare install
-  // with no versioned counterpart) — update-alternatives forbids link == path.
+  // Register the binary under the generic `flang` name so users can always
+  // call `flang` regardless of which LLVM major is installed.
+  // Skip if the resolved path is already /usr/bin/flang — update-alternatives
+  // forbids registering a file as its own alternative.
   if (binaryPath !== "/usr/bin/flang") {
+    core.info(
+      `Registering update-alternatives: /usr/bin/flang -> ${binaryPath}`,
+    );
     await exec.exec("sudo", [
       "update-alternatives",
       "--install",
@@ -125,6 +116,19 @@ export async function installDebian(target: Target): Promise<string> {
   core.exportVariable("CC", `clang-${version}`);
   core.exportVariable("CXX", `clang++-${version}`);
 
+  // Set LIBRARY_PATH so the Fortran runtime libraries are findable at link
+  // time. This is particularly important for LLVM 15/16 where the runtime
+  // libs (libFortranRuntime, libFortranDecimal, etc.) are not in the default
+  // linker search path.
+  const llvmLibDir = `/usr/lib/llvm-${version}/lib`;
+  if (fs.existsSync(llvmLibDir)) {
+    const existing = process.env.LIBRARY_PATH ?? "";
+    core.exportVariable(
+      "LIBRARY_PATH",
+      existing ? `${llvmLibDir}:${existing}` : llvmLibDir,
+    );
+  }
+
   const resolvedVersion = await resolveInstalledVersion();
   core.info(`Flang ${resolvedVersion} installed successfully.`);
   return resolvedVersion;
@@ -132,6 +136,8 @@ export async function installDebian(target: Target): Promise<string> {
 
 async function resolveInstalledVersion(): Promise<string> {
   let output = "";
+  // By this point /usr/bin/flang points to the right binary via
+  // update-alternatives (or was already there), so we can call it directly.
   await exec.exec("flang", ["--version"], {
     listeners: {
       stdout: (data: Buffer) => {
