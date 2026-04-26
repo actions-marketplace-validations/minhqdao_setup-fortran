@@ -211,6 +211,12 @@ export async function installWin32(target: Target): Promise<string> {
     );
   }
 
+  // DEBUG: add this right after toolRoot is set, before accessing binDir
+  await exec.exec("cmd", [
+    "/c",
+    `dir /s /b "${toolRoot}" | findstr /i "flang"`,
+  ]);
+
   const binDir = path.join(toolRoot, "bin");
   core.addPath(binDir);
 

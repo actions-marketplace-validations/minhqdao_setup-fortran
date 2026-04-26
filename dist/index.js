@@ -99986,6 +99986,11 @@ async function win32_installWin32(target) {
     else {
         lib_core.info(`Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`);
     }
+    // DEBUG: add this right after toolRoot is set, before accessing binDir
+    await lib_exec.exec("cmd", [
+        "/c",
+        `dir /s /b "${toolRoot}" | findstr /i "flang"`,
+    ]);
     const binDir = external_path_.join(toolRoot, "bin");
     lib_core.addPath(binDir);
     const flangExe = external_path_.join(binDir, "flang.exe");
