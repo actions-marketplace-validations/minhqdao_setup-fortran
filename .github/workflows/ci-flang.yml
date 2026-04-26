@@ -42,20 +42,20 @@ jobs:
           #   toolchain: { compiler: flang }
           # - image: macos-14
           #   toolchain: { compiler: flang } # only latest version available from brew
+          # - image: windows-2025
+          #   toolchain: { compiler: flang, version: "22" }
+          # - image: windows-2022
+          #   toolchain: { compiler: flang, version: "22" }
+          # - image: windows-11-arm
+          #   toolchain: { compiler: flang, version: "22" }
+          # - image: windows-11-arm
+          #   toolchain: { compiler: flang, version: "21" }
+          # - image: windows-11-arm
+          #   toolchain: { compiler: flang, version: "20" }
           - image: windows-2025
-            toolchain: { compiler: flang, version: "22" }
+            toolchain: { compiler: flang, windowsEnv: ucrt64 } # only latest version available from Pacman
           - image: windows-2022
-            toolchain: { compiler: flang, version: "22" }
-          - image: windows-11-arm
-            toolchain: { compiler: flang, version: "22" }
-          - image: windows-11-arm
-            toolchain: { compiler: flang, version: "21" }
-          - image: windows-11-arm
-            toolchain: { compiler: flang, version: "20" }
-          - image: windows-2025
-            toolchain: { compiler: flang, version: ucrt64 } # only latest version available from Pacman
-          - image: windows-2022
-            toolchain: { compiler: flang, version: ucrt64 } # only latest version available from Pacman
+            toolchain: { compiler: flang, windowsEnv: ucrt64 } # only latest version available from Pacman
     steps:
       - uses: actions/checkout@v6
 
