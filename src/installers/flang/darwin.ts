@@ -26,14 +26,14 @@ const SUPPORTED_VERSIONS = {
 } as const satisfies Record<Arch, readonly string[] | undefined>;
 
 export async function installDarwin(target: Target): Promise<string> {
-  if (target.arch === Arch.X64) {
-    throw new Error(
-      `Flang is not supported on Intel macOS runners (macos-15-intel, macos-26-intel). ` +
-        `The Homebrew flang formula has no prebuilt bottle for Intel on macOS 15 (sequoia) ` +
-        `or macOS 26 (tahoe), and building LLVM from source is not viable in CI. ` +
-        `Use an ARM64 runner instead (macos-14, macos-15, macos-26).`,
-    );
-  }
+  // if (target.arch === Arch.X64) {
+  //   throw new Error(
+  //     `Flang is not supported on Intel macOS runners (macos-15-intel, macos-26-intel). ` +
+  //       `The Homebrew flang formula has no prebuilt bottle for Intel on macOS 15 (sequoia) ` +
+  //       `or macOS 26 (tahoe), and building LLVM from source is not viable in CI. ` +
+  //       `Use an ARM64 runner instead (macos-14, macos-15, macos-26).`,
+  //   );
+  // }
 
   resolveVersion(target, SUPPORTED_VERSIONS);
 

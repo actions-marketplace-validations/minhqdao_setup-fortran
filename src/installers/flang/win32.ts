@@ -6,7 +6,6 @@ import * as tc from "@actions/tool-cache";
 import { Arch, type Target } from "../../types";
 import { resolveVersion } from "../../resolve_version";
 
-// Make sure the versions are always in descending order. The first one will be
 // used as the default if no version was specified by the user.
 //
 // Windows availability of official LLVM installer packages:
@@ -15,8 +14,17 @@ import { resolveVersion } from "../../resolve_version";
 //
 // Only major versions are listed here. Full patch versions (e.g. "22.1.3")
 // are validated by extracting the major and checking it against this table.
+// Make sure the versions are always in descending order. The first one will be
+// used as the default if no version was specified by the user.
+//
+// x64: flang.exe was absent from the official LLVM Windows x64 installer
+// through at least LLVM 21. LLVM 22 is the first confirmed working version.
+// ARM64: flang has been present since LLVM 20 (Linaro maintains the woa64 build).
+//
+// Only major versions are listed here. Full patch versions (e.g. "22.1.3")
+// are validated by extracting the major and checking it against this table.
 const SUPPORTED_VERSIONS = {
-  [Arch.X64]: ["22", "21", "20", "19", "18"],
+  [Arch.X64]: ["22"],
   [Arch.ARM64]: ["22", "21", "20"],
 } as const satisfies Record<Arch, readonly string[]>;
 
@@ -254,21 +262,6 @@ export async function installWin32(target: Target): Promise<string> {
       `Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`,
     );
   }
-
-  // DEBUG: search for flang in toolRoot
-  function findFlang(dir: string): void {
-    for (const f of fs.readdirSync(dir)) {
-      const fullPath = path.join(dir, f);
-      if (f.toLowerCase().includes("flang")) core.info(`  FOUND: ${fullPath}`);
-      try {
-        if (fs.statSync(fullPath).isDirectory()) findFlang(fullPath);
-      } catch {
-        /* skip inaccessible */
-      }
-    }
-  }
-  core.info("DEBUG: searching for flang in toolRoot...");
-  findFlang(toolRoot);
 
   const binDir = path.join(toolRoot, "bin");
   core.addPath(binDir);

@@ -99770,12 +99770,14 @@ const flang_darwin_SUPPORTED_VERSIONS = {
     [Arch.X64]: undefined,
 };
 async function darwin_installDarwin(target) {
-    if (target.arch === Arch.X64) {
-        throw new Error(`Flang is not supported on Intel macOS runners (macos-15-intel, macos-26-intel). ` +
-            `The Homebrew flang formula has no prebuilt bottle for Intel on macOS 15 (sequoia) ` +
-            `or macOS 26 (tahoe), and building LLVM from source is not viable in CI. ` +
-            `Use an ARM64 runner instead (macos-14, macos-15, macos-26).`);
-    }
+    // if (target.arch === Arch.X64) {
+    //   throw new Error(
+    //     `Flang is not supported on Intel macOS runners (macos-15-intel, macos-26-intel). ` +
+    //       `The Homebrew flang formula has no prebuilt bottle for Intel on macOS 15 (sequoia) ` +
+    //       `or macOS 26 (tahoe), and building LLVM from source is not viable in CI. ` +
+    //       `Use an ARM64 runner instead (macos-14, macos-15, macos-26).`,
+    //   );
+    // }
     resolveVersion(target, flang_darwin_SUPPORTED_VERSIONS);
     lib_core.info(`Installing Flang on macOS (${target.arch}) via Homebrew...`);
     lib_core.info(`Note: the Homebrew flang formula is unversioned — the latest available ` +
@@ -99854,7 +99856,6 @@ async function flang_darwin_resolveInstalledVersion(flangBin) {
 
 
 
-// Make sure the versions are always in descending order. The first one will be
 // used as the default if no version was specified by the user.
 //
 // Windows availability of official LLVM installer packages:
@@ -99863,8 +99864,17 @@ async function flang_darwin_resolveInstalledVersion(flangBin) {
 //
 // Only major versions are listed here. Full patch versions (e.g. "22.1.3")
 // are validated by extracting the major and checking it against this table.
+// Make sure the versions are always in descending order. The first one will be
+// used as the default if no version was specified by the user.
+//
+// x64: flang.exe was absent from the official LLVM Windows x64 installer
+// through at least LLVM 21. LLVM 22 is the first confirmed working version.
+// ARM64: flang has been present since LLVM 20 (Linaro maintains the woa64 build).
+//
+// Only major versions are listed here. Full patch versions (e.g. "22.1.3")
+// are validated by extracting the major and checking it against this table.
 const flang_win32_SUPPORTED_VERSIONS = {
-    [Arch.X64]: ["22", "21", "20", "19", "18"],
+    [Arch.X64]: ["22"],
     [Arch.ARM64]: ["22", "21", "20"],
 };
 // Windows installer suffix per arch, as used in official LLVM GitHub releases.
@@ -100020,23 +100030,6 @@ async function win32_installWin32(target) {
     else {
         lib_core.info(`Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`);
     }
-    // DEBUG: search for flang in toolRoot
-    function findFlang(dir) {
-        for (const f of external_fs_.readdirSync(dir)) {
-            const fullPath = external_path_.join(dir, f);
-            if (f.toLowerCase().includes("flang"))
-                lib_core.info(`  FOUND: ${fullPath}`);
-            try {
-                if (external_fs_.statSync(fullPath).isDirectory())
-                    findFlang(fullPath);
-            }
-            catch {
-                /* skip inaccessible */
-            }
-        }
-    }
-    lib_core.info("DEBUG: searching for flang in toolRoot...");
-    findFlang(toolRoot);
     const binDir = external_path_.join(toolRoot, "bin");
     lib_core.addPath(binDir);
     const flangExe = external_path_.join(binDir, "flang.exe");
