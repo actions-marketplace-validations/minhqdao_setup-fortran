@@ -99981,16 +99981,23 @@ async function win32_installWin32(target) {
         external_fs_.mkdirSync(tempExtractDir, { recursive: true });
         const extractedDir = await extractTarXz(downloadPath, tempExtractDir);
         lib_core.info("Caching...");
+        lib_core.info(`extractedDir: ${extractedDir}`);
+        lib_core.info(`toolRoot after cacheDir: ${toolRoot}`);
+        // List top-level contents of extractedDir before caching
+        for (const f of external_fs_.readdirSync(extractedDir)) {
+            lib_core.info(`  ${f}`);
+        }
         toolRoot = await cacheDir(extractedDir, "flang", patch, target.arch);
+        lib_core.info(`extractedDir: ${extractedDir}`);
+        lib_core.info(`toolRoot after cacheDir: ${toolRoot}`);
+        // List top-level contents of extractedDir before caching
+        for (const f of external_fs_.readdirSync(extractedDir)) {
+            lib_core.info(`  ${f}`);
+        }
     }
     else {
         lib_core.info(`Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`);
     }
-    // DEBUG: add this right after toolRoot is set, before accessing binDir
-    await lib_exec.exec("cmd", [
-        "/c",
-        `dir /s /b "${toolRoot}" | findstr /i "flang"`,
-    ]);
     const binDir = external_path_.join(toolRoot, "bin");
     lib_core.addPath(binDir);
     const flangExe = external_path_.join(binDir, "flang.exe");

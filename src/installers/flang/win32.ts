@@ -204,18 +204,24 @@ export async function installWin32(target: Target): Promise<string> {
     const extractedDir = await extractTarXz(downloadPath, tempExtractDir);
 
     core.info("Caching...");
+    core.info(`extractedDir: ${extractedDir}`);
+    core.info(`toolRoot after cacheDir: ${toolRoot}`);
+    // List top-level contents of extractedDir before caching
+    for (const f of fs.readdirSync(extractedDir)) {
+      core.info(`  ${f}`);
+    }
     toolRoot = await tc.cacheDir(extractedDir, "flang", patch, target.arch);
+    core.info(`extractedDir: ${extractedDir}`);
+    core.info(`toolRoot after cacheDir: ${toolRoot}`);
+    // List top-level contents of extractedDir before caching
+    for (const f of fs.readdirSync(extractedDir)) {
+      core.info(`  ${f}`);
+    }
   } else {
     core.info(
       `Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`,
     );
   }
-
-  // DEBUG: add this right after toolRoot is set, before accessing binDir
-  await exec.exec("cmd", [
-    "/c",
-    `dir /s /b "${toolRoot}" | findstr /i "flang"`,
-  ]);
 
   const binDir = path.join(toolRoot, "bin");
   core.addPath(binDir);
