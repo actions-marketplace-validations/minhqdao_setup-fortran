@@ -39,6 +39,11 @@ async function run(): Promise<void> {
       flags.push("-J", "test_build");
     }
 
+    // Manually add LLVM library path for flang <= 16
+    if (isFlang && compilerVersion <= 16) {
+      flags.push(`-L/usr/lib/llvm-${compilerVersion.toString()}/lib`);
+    }
+
     // OpenMP flag varies by compiler family.
     let ompFlag = "";
     if (compiler === Compiler.NVFortran) {

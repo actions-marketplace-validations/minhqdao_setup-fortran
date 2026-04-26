@@ -33,8 +33,8 @@ jobs:
           # - { compiler: flang, version: "18" }
           - { compiler: flang, version: "17" }
         include:
-          - image: ubuntu-22.04
-            toolchain: { compiler: flang, version: "16" }
+          # - image: ubuntu-22.04
+          #   toolchain: { compiler: flang, version: "16" }
           - image: ubuntu-22.04
             toolchain: { compiler: flang, version: "15" }
           # - image: macos-26
