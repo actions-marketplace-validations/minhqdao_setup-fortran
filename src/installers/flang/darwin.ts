@@ -7,14 +7,6 @@ import type { Target } from "../../types";
 
 // macOS support notes:
 //
-//   ARM64 (macos-14 sonoma, macos-15 sequoia, macos-26 tahoe):
-//     `brew install flang` installs prebuilt bottles on all three. Supported.
-//
-//   Intel x64 (macos-15-intel sequoia, macos-26-intel tahoe):
-//     The flang Homebrew formula has a prebuilt Intel bottle for Sonoma only.
-//     Sequoia and Tahoe have no Intel bottle; installation would require
-//     building LLVM from source (~hours). Not viable in CI.
-//
 // Version selection is not possible on macOS: the `flang` formula is
 // unversioned and always tracks the latest LLVM release. The versioned
 // `llvm@N` formulae exist but do not include flang as a built component.
@@ -26,15 +18,6 @@ const SUPPORTED_VERSIONS = {
 } as const satisfies Record<Arch, readonly string[] | undefined>;
 
 export async function installDarwin(target: Target): Promise<string> {
-  // if (target.arch === Arch.X64) {
-  //   throw new Error(
-  //     `Flang is not supported on Intel macOS runners (macos-15-intel, macos-26-intel). ` +
-  //       `The Homebrew flang formula has no prebuilt bottle for Intel on macOS 15 (sequoia) ` +
-  //       `or macOS 26 (tahoe), and building LLVM from source is not viable in CI. ` +
-  //       `Use an ARM64 runner instead (macos-14, macos-15, macos-26).`,
-  //   );
-  // }
-
   resolveVersion(target, SUPPORTED_VERSIONS);
 
   core.info(`Installing Flang on macOS (${target.arch}) via Homebrew...`);

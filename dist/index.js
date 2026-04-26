@@ -99752,14 +99752,6 @@ async function flang_debian_resolveInstalledVersion() {
 
 // macOS support notes:
 //
-//   ARM64 (macos-14 sonoma, macos-15 sequoia, macos-26 tahoe):
-//     `brew install flang` installs prebuilt bottles on all three. Supported.
-//
-//   Intel x64 (macos-15-intel sequoia, macos-26-intel tahoe):
-//     The flang Homebrew formula has a prebuilt Intel bottle for Sonoma only.
-//     Sequoia and Tahoe have no Intel bottle; installation would require
-//     building LLVM from source (~hours). Not viable in CI.
-//
 // Version selection is not possible on macOS: the `flang` formula is
 // unversioned and always tracks the latest LLVM release. The versioned
 // `llvm@N` formulae exist but do not include flang as a built component.
@@ -99770,14 +99762,6 @@ const flang_darwin_SUPPORTED_VERSIONS = {
     [Arch.X64]: [LATEST],
 };
 async function darwin_installDarwin(target) {
-    // if (target.arch === Arch.X64) {
-    //   throw new Error(
-    //     `Flang is not supported on Intel macOS runners (macos-15-intel, macos-26-intel). ` +
-    //       `The Homebrew flang formula has no prebuilt bottle for Intel on macOS 15 (sequoia) ` +
-    //       `or macOS 26 (tahoe), and building LLVM from source is not viable in CI. ` +
-    //       `Use an ARM64 runner instead (macos-14, macos-15, macos-26).`,
-    //   );
-    // }
     resolveVersion(target, flang_darwin_SUPPORTED_VERSIONS);
     lib_core.info(`Installing Flang on macOS (${target.arch}) via Homebrew...`);
     lib_core.info(`Note: the Homebrew flang formula is unversioned — the latest available ` +
@@ -99856,26 +99840,30 @@ async function flang_darwin_resolveInstalledVersion(flangBin) {
 
 
 
-// used as the default if no version was specified by the user.
-//
-// Windows availability of official LLVM installer packages:
-//   x64:   LLVM-*.exe (win64) — available from 18+
-//   ARM64: LLVM-*.exe (woa64) — available from 20+
-//
-// Only major versions are listed here. Full patch versions (e.g. "22.1.3")
-// are validated by extracting the major and checking it against this table.
+
 // Make sure the versions are always in descending order. The first one will be
 // used as the default if no version was specified by the user.
 //
-// x64: flang.exe was absent from the official LLVM Windows x64 installer
-// through at least LLVM 21. LLVM 22 is the first confirmed working version.
-// ARM64: flang has been present since LLVM 20 (Linaro maintains the woa64 build).
+// Native (LLVM official installer):
+//   x64:   flang.exe was absent from official Windows x64 installers through
+//          at least LLVM 21. LLVM 22 is the first confirmed working version.
+//   ARM64: flang has been present since LLVM 20 (Linaro maintains the woa64 build).
 //
-// Only major versions are listed here. Full patch versions (e.g. "22.1.3")
+// UCRT64 (MSYS2/pacman rolling release):
+//   x64 only — MSYS2 does not support ARM64.
+//   Version is always LATEST since pacman tracks the rolling release.
+//
+// Only major versions are listed for Native. Full patch versions (e.g. "22.1.3")
 // are validated by extracting the major and checking it against this table.
 const flang_win32_SUPPORTED_VERSIONS = {
-    [Arch.X64]: ["22"],
-    [Arch.ARM64]: ["22", "21", "20", "19", "18", "17", "16", "15", "14", "13"],
+    [Arch.X64]: {
+        [WindowsEnv.Native]: ["22"],
+        [WindowsEnv.UCRT64]: [LATEST],
+    },
+    [Arch.ARM64]: {
+        [WindowsEnv.Native]: ["22", "21", "20"],
+        [WindowsEnv.UCRT64]: undefined,
+    },
 };
 // Windows installer suffix per arch, as used in official LLVM GitHub releases.
 // win64 = x86_64, woa64 = Windows on ARM64.
@@ -99937,7 +99925,6 @@ async function extractExe(installerPath, destDir) {
     const sevenZip = "C:\\Program Files\\7-Zip\\7z.exe";
     lib_core.info("Extracting installer with 7-Zip...");
     await lib_exec.exec(`"${sevenZip}"`, ["x", installerPath, `-o${destDir}`, "-y"]);
-    return destDir;
 }
 // Locates the MSVC toolchain and Windows SDK library directories using vswhere
 // and adds them to the LIB environment variable so flang's linker backend can
@@ -99949,7 +99936,6 @@ async function extractExe(installerPath, destDir) {
 async function setupMsvcLibs(arch) {
     lib_core.info("Locating MSVC and Windows SDK libraries for flang linker...");
     const vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
-    // Find VS installation path.
     let vsInstallPath = "";
     await lib_exec.exec(`"${vswhere}"`, ["-latest", "-property", "installationPath"], {
         listeners: {
@@ -99964,28 +99950,25 @@ async function setupMsvcLibs(arch) {
         return;
     }
     lib_core.info(`Found Visual Studio at: ${vsInstallPath}`);
-    // Find the MSVC tools version (e.g. 14.38.33130).
+    // Find the latest MSVC tools version (e.g. 14.38.33130).
     const vcToolsRoot = external_path_.join(vsInstallPath, "VC", "Tools", "MSVC");
-    const vcVersions = external_fs_.readdirSync(vcToolsRoot)
+    const vcVersion = external_fs_.readdirSync(vcToolsRoot)
         .filter((d) => /^\d+\.\d+\.\d+$/.test(d))
         .sort()
-        .reverse();
-    const vcVersion = vcVersions[0];
+        .reverse()[0];
     if (!vcVersion) {
         lib_core.warning("Could not find MSVC tools version directory.");
         return;
     }
     const msvcLibDir = external_path_.join(vcToolsRoot, vcVersion, "lib", arch);
     lib_core.info(`MSVC lib dir: ${msvcLibDir}`);
-    // Find the Windows SDK lib directory. The SDK installs under
-    // C:\Program Files (x86)\Windows Kits\10\Lib\<version>\um\<arch> and
-    // ...\ucrt\<arch>.
+    // Find the latest Windows SDK version under
+    // C:\Program Files (x86)\Windows Kits\10\Lib\<version>\{um,ucrt}\<arch>.
     const winsdk10Root = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib";
-    const sdkVersions = external_fs_.readdirSync(winsdk10Root)
+    const sdkVersion = external_fs_.readdirSync(winsdk10Root)
         .filter((d) => /^\d+\.\d+\.\d+\.\d+$/.test(d))
         .sort()
-        .reverse();
-    const sdkVersion = sdkVersions[0];
+        .reverse()[0];
     if (!sdkVersion) {
         lib_core.warning("Could not find Windows SDK version directory.");
         return;
@@ -99994,7 +99977,6 @@ async function setupMsvcLibs(arch) {
     const winsdkUcrtDir = external_path_.join(winsdk10Root, sdkVersion, "ucrt", arch);
     lib_core.info(`Windows SDK um dir:   ${winsdkUmDir}`);
     lib_core.info(`Windows SDK ucrt dir: ${winsdkUcrtDir}`);
-    // Prepend all three dirs to LIB.
     const existing = process.env.LIB ?? "";
     const libDirs = [msvcLibDir, winsdkUmDir, winsdkUcrtDir]
         .filter(external_fs_.existsSync)
@@ -100002,9 +99984,23 @@ async function setupMsvcLibs(arch) {
     lib_core.exportVariable("LIB", existing ? `${libDirs};${existing}` : libDirs);
 }
 async function win32_installWin32(target) {
-    const { major, patch: userPatch } = parseVersionInput(target.version);
-    // Always validate the major against SUPPORTED_VERSIONS.
-    resolveVersion({ ...target, version: major }, flang_win32_SUPPORTED_VERSIONS);
+    switch (target.windowsEnv) {
+        case WindowsEnv.Native:
+            return await win32_installNative(target);
+        case WindowsEnv.UCRT64:
+            return await win32_installMSYS2(target);
+    }
+}
+async function win32_installNative(target) {
+    const { major, patch: userPatch } = parseVersionInput(resolveWindowsVersion(target, flang_win32_SUPPORTED_VERSIONS));
+    // Re-validate the major explicitly — resolveWindowsVersion already checks
+    // against SUPPORTED_VERSIONS, but parseVersionInput may have produced a
+    // major from a full user-supplied patch (e.g. "22.1.3" → major "22") that
+    // needs to be confirmed as supported for this arch/env combination.
+    resolveVersion({ ...target, version: major }, {
+        [Arch.X64]: flang_win32_SUPPORTED_VERSIONS[Arch.X64][WindowsEnv.Native],
+        [Arch.ARM64]: flang_win32_SUPPORTED_VERSIONS[Arch.ARM64][WindowsEnv.Native],
+    });
     let patch;
     if (userPatch !== undefined) {
         await verifyPatchExists(userPatch, target.arch);
@@ -100048,6 +100044,30 @@ async function win32_installWin32(target) {
     await setupMsvcLibs(target.arch);
     const resolvedVersion = await flang_win32_resolveInstalledVersion(flangExe);
     lib_core.info(`Flang ${resolvedVersion} installed successfully.`);
+    return resolvedVersion;
+}
+async function win32_installMSYS2(target) {
+    // MSYS2 does not support ARM64 — the UCRT64 environment is x64 only.
+    if (target.arch === Arch.ARM64) {
+        throw new Error(`Flang via MSYS2/UCRT64 is not supported on ARM64. ` +
+            `Use windowsEnv: native for ARM64 Windows.`);
+    }
+    lib_core.info(`Installing Flang on Windows (MSYS2/UCRT64, rolling release)...`);
+    // The MSYS2 package for flang in the UCRT64 environment.
+    await setupMSYS2(target.windowsEnv, ["mingw-w64-ucrt-x86_64-flang"]);
+    const msysBin = external_path_.join("C:\\msys64", target.windowsEnv, "bin");
+    const flangExe = external_path_.join(msysBin, "flang.exe");
+    const clangExe = external_path_.join(msysBin, "clang.exe");
+    const clangPPExe = external_path_.join(msysBin, "clang++.exe");
+    lib_core.addPath(msysBin);
+    lib_core.exportVariable("FC", flangExe);
+    lib_core.exportVariable("CC", clangExe);
+    lib_core.exportVariable("CXX", clangPPExe);
+    lib_core.exportVariable("FORTRAN_COMPILER", "flang");
+    // MSYS2 rolling release has no meaningful version to export; use LATEST.
+    lib_core.exportVariable("FORTRAN_COMPILER_VERSION", LATEST);
+    const resolvedVersion = await flang_win32_resolveInstalledVersion(flangExe);
+    lib_core.info(`Flang ${resolvedVersion} installed successfully via MSYS2.`);
     return resolvedVersion;
 }
 async function flang_win32_resolveInstalledVersion(flangExe) {

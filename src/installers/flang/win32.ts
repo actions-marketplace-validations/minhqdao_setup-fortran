@@ -3,30 +3,37 @@ import * as exec from "@actions/exec";
 import * as path from "path";
 import * as fs from "fs";
 import * as tc from "@actions/tool-cache";
-import { Arch, type Target } from "../../types";
-import { resolveVersion } from "../../resolve_version";
+import { Arch, LATEST, WindowsEnv, type Target } from "../../types";
+import { resolveVersion, resolveWindowsVersion } from "../../resolve_version";
+import { setupMSYS2 } from "../../setup_msys2";
 
-// used as the default if no version was specified by the user.
-//
-// Windows availability of official LLVM installer packages:
-//   x64:   LLVM-*.exe (win64) — available from 18+
-//   ARM64: LLVM-*.exe (woa64) — available from 20+
-//
-// Only major versions are listed here. Full patch versions (e.g. "22.1.3")
-// are validated by extracting the major and checking it against this table.
 // Make sure the versions are always in descending order. The first one will be
 // used as the default if no version was specified by the user.
 //
-// x64: flang.exe was absent from the official LLVM Windows x64 installer
-// through at least LLVM 21. LLVM 22 is the first confirmed working version.
-// ARM64: flang has been present since LLVM 20 (Linaro maintains the woa64 build).
+// Native (LLVM official installer):
+//   x64:   flang.exe was absent from official Windows x64 installers through
+//          at least LLVM 21. LLVM 22 is the first confirmed working version.
+//   ARM64: flang has been present since LLVM 20 (Linaro maintains the woa64 build).
 //
-// Only major versions are listed here. Full patch versions (e.g. "22.1.3")
+// UCRT64 (MSYS2/pacman rolling release):
+//   x64 only — MSYS2 does not support ARM64.
+//   Version is always LATEST since pacman tracks the rolling release.
+//
+// Only major versions are listed for Native. Full patch versions (e.g. "22.1.3")
 // are validated by extracting the major and checking it against this table.
 const SUPPORTED_VERSIONS = {
-  [Arch.X64]: ["22"],
-  [Arch.ARM64]: ["22", "21", "20", "19", "18", "17", "16", "15", "14", "13"],
-} as const satisfies Record<Arch, readonly string[]>;
+  [Arch.X64]: {
+    [WindowsEnv.Native]: ["22"],
+    [WindowsEnv.UCRT64]: [LATEST],
+  },
+  [Arch.ARM64]: {
+    [WindowsEnv.Native]: ["22", "21", "20"],
+    [WindowsEnv.UCRT64]: undefined,
+  },
+} as const satisfies Record<
+  Arch,
+  Record<WindowsEnv, readonly string[] | undefined>
+>;
 
 // Windows installer suffix per arch, as used in official LLVM GitHub releases.
 // win64 = x86_64, woa64 = Windows on ARM64.
@@ -129,11 +136,10 @@ async function verifyPatchExists(patch: string, arch: Arch): Promise<void> {
 async function extractExe(
   installerPath: string,
   destDir: string,
-): Promise<string> {
+): Promise<void> {
   const sevenZip = "C:\\Program Files\\7-Zip\\7z.exe";
   core.info("Extracting installer with 7-Zip...");
   await exec.exec(`"${sevenZip}"`, ["x", installerPath, `-o${destDir}`, "-y"]);
-  return destDir;
 }
 
 // Locates the MSVC toolchain and Windows SDK library directories using vswhere
@@ -149,7 +155,6 @@ async function setupMsvcLibs(arch: Arch): Promise<void> {
   const vswhere =
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
 
-  // Find VS installation path.
   let vsInstallPath = "";
   await exec.exec(
     `"${vswhere}"`,
@@ -173,14 +178,14 @@ async function setupMsvcLibs(arch: Arch): Promise<void> {
 
   core.info(`Found Visual Studio at: ${vsInstallPath}`);
 
-  // Find the MSVC tools version (e.g. 14.38.33130).
+  // Find the latest MSVC tools version (e.g. 14.38.33130).
   const vcToolsRoot = path.join(vsInstallPath, "VC", "Tools", "MSVC");
-  const vcVersions = fs
+  const vcVersion = fs
     .readdirSync(vcToolsRoot)
     .filter((d) => /^\d+\.\d+\.\d+$/.test(d))
     .sort()
-    .reverse();
-  const vcVersion = vcVersions[0];
+    .reverse()[0];
+
   if (!vcVersion) {
     core.warning("Could not find MSVC tools version directory.");
     return;
@@ -189,16 +194,15 @@ async function setupMsvcLibs(arch: Arch): Promise<void> {
   const msvcLibDir = path.join(vcToolsRoot, vcVersion, "lib", arch);
   core.info(`MSVC lib dir: ${msvcLibDir}`);
 
-  // Find the Windows SDK lib directory. The SDK installs under
-  // C:\Program Files (x86)\Windows Kits\10\Lib\<version>\um\<arch> and
-  // ...\ucrt\<arch>.
+  // Find the latest Windows SDK version under
+  // C:\Program Files (x86)\Windows Kits\10\Lib\<version>\{um,ucrt}\<arch>.
   const winsdk10Root = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib";
-  const sdkVersions = fs
+  const sdkVersion = fs
     .readdirSync(winsdk10Root)
     .filter((d) => /^\d+\.\d+\.\d+\.\d+$/.test(d))
     .sort()
-    .reverse();
-  const sdkVersion = sdkVersions[0];
+    .reverse()[0];
+
   if (!sdkVersion) {
     core.warning("Could not find Windows SDK version directory.");
     return;
@@ -209,7 +213,6 @@ async function setupMsvcLibs(arch: Arch): Promise<void> {
   core.info(`Windows SDK um dir:   ${winsdkUmDir}`);
   core.info(`Windows SDK ucrt dir: ${winsdkUcrtDir}`);
 
-  // Prepend all three dirs to LIB.
   const existing = process.env.LIB ?? "";
   const libDirs = [msvcLibDir, winsdkUmDir, winsdkUcrtDir]
     .filter(fs.existsSync)
@@ -219,10 +222,30 @@ async function setupMsvcLibs(arch: Arch): Promise<void> {
 }
 
 export async function installWin32(target: Target): Promise<string> {
-  const { major, patch: userPatch } = parseVersionInput(target.version);
+  switch (target.windowsEnv) {
+    case WindowsEnv.Native:
+      return await installNative(target);
+    case WindowsEnv.UCRT64:
+      return await installMSYS2(target);
+  }
+}
 
-  // Always validate the major against SUPPORTED_VERSIONS.
-  resolveVersion({ ...target, version: major }, SUPPORTED_VERSIONS);
+async function installNative(target: Target): Promise<string> {
+  const { major, patch: userPatch } = parseVersionInput(
+    resolveWindowsVersion(target, SUPPORTED_VERSIONS),
+  );
+
+  // Re-validate the major explicitly — resolveWindowsVersion already checks
+  // against SUPPORTED_VERSIONS, but parseVersionInput may have produced a
+  // major from a full user-supplied patch (e.g. "22.1.3" → major "22") that
+  // needs to be confirmed as supported for this arch/env combination.
+  resolveVersion(
+    { ...target, version: major },
+    {
+      [Arch.X64]: SUPPORTED_VERSIONS[Arch.X64][WindowsEnv.Native],
+      [Arch.ARM64]: SUPPORTED_VERSIONS[Arch.ARM64][WindowsEnv.Native],
+    },
+  );
 
   let patch: string;
 
@@ -289,6 +312,39 @@ export async function installWin32(target: Target): Promise<string> {
 
   const resolvedVersion = await resolveInstalledVersion(flangExe);
   core.info(`Flang ${resolvedVersion} installed successfully.`);
+  return resolvedVersion;
+}
+
+async function installMSYS2(target: Target): Promise<string> {
+  // MSYS2 does not support ARM64 — the UCRT64 environment is x64 only.
+  if (target.arch === Arch.ARM64) {
+    throw new Error(
+      `Flang via MSYS2/UCRT64 is not supported on ARM64. ` +
+        `Use windowsEnv: native for ARM64 Windows.`,
+    );
+  }
+
+  core.info(`Installing Flang on Windows (MSYS2/UCRT64, rolling release)...`);
+
+  // The MSYS2 package for flang in the UCRT64 environment.
+  await setupMSYS2(target.windowsEnv, ["mingw-w64-ucrt-x86_64-flang"]);
+
+  const msysBin = path.join("C:\\msys64", target.windowsEnv, "bin");
+  const flangExe = path.join(msysBin, "flang.exe");
+  const clangExe = path.join(msysBin, "clang.exe");
+  const clangPPExe = path.join(msysBin, "clang++.exe");
+
+  core.addPath(msysBin);
+
+  core.exportVariable("FC", flangExe);
+  core.exportVariable("CC", clangExe);
+  core.exportVariable("CXX", clangPPExe);
+  core.exportVariable("FORTRAN_COMPILER", "flang");
+  // MSYS2 rolling release has no meaningful version to export; use LATEST.
+  core.exportVariable("FORTRAN_COMPILER_VERSION", LATEST);
+
+  const resolvedVersion = await resolveInstalledVersion(flangExe);
+  core.info(`Flang ${resolvedVersion} installed successfully via MSYS2.`);
   return resolvedVersion;
 }
 
