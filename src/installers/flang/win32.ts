@@ -255,6 +255,21 @@ export async function installWin32(target: Target): Promise<string> {
     );
   }
 
+  // DEBUG: search for flang in toolRoot
+  function findFlang(dir: string): void {
+    for (const f of fs.readdirSync(dir)) {
+      const fullPath = path.join(dir, f);
+      if (f.toLowerCase().includes("flang")) core.info(`  FOUND: ${fullPath}`);
+      try {
+        if (fs.statSync(fullPath).isDirectory()) findFlang(fullPath);
+      } catch {
+        /* skip inaccessible */
+      }
+    }
+  }
+  core.info("DEBUG: searching for flang in toolRoot...");
+  findFlang(toolRoot);
+
   const binDir = path.join(toolRoot, "bin");
   core.addPath(binDir);
 

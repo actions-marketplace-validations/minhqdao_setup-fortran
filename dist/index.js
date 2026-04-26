@@ -100020,6 +100020,23 @@ async function win32_installWin32(target) {
     else {
         lib_core.info(`Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`);
     }
+    // DEBUG: search for flang in toolRoot
+    function findFlang(dir) {
+        for (const f of external_fs_.readdirSync(dir)) {
+            const fullPath = external_path_.join(dir, f);
+            if (f.toLowerCase().includes("flang"))
+                lib_core.info(`  FOUND: ${fullPath}`);
+            try {
+                if (external_fs_.statSync(fullPath).isDirectory())
+                    findFlang(fullPath);
+            }
+            catch {
+                /* skip inaccessible */
+            }
+        }
+    }
+    lib_core.info("DEBUG: searching for flang in toolRoot...");
+    findFlang(toolRoot);
     const binDir = external_path_.join(toolRoot, "bin");
     lib_core.addPath(binDir);
     const flangExe = external_path_.join(binDir, "flang.exe");
