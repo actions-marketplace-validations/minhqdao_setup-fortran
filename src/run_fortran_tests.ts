@@ -42,9 +42,9 @@ async function run(): Promise<void> {
     // Manually add LLVM library path for flang <= 15
     if (isFlang && compilerVersion <= 15) {
       flags.push(`-L/usr/lib/llvm-${compilerVersion.toString()}/lib`);
-      flags.push("-lFortran_main");
       flags.push("-lFortranRuntime");
       flags.push("-lFortranDecimal");
+      flags.push("-lFortran_main");
       flags.push("-lm");
     }
 
