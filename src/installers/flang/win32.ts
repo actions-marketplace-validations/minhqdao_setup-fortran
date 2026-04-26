@@ -200,6 +200,24 @@ async function setupMsvcLibs(arch: Arch): Promise<void> {
     .join(";");
 
   core.exportVariable("LIB", existing ? `${libDirs};${existing}` : libDirs);
+
+  core.info(
+    `DEBUG: vcToolsRoot entries: ${fs.readdirSync(vcToolsRoot).join(", ")}`,
+  );
+  core.info(
+    `DEBUG: winsdk10Root entries: ${fs.readdirSync(winsdk10Root).join(", ")}`,
+  );
+  core.info(`DEBUG: selected sdkVersion: ${sdkVersion}`);
+  core.info(
+    `DEBUG: winsdkUmDir exists: ${fs.existsSync(winsdkUmDir).toString()}`,
+  );
+  core.info(
+    `DEBUG: winsdkUcrtDir exists: ${fs.existsSync(winsdkUcrtDir).toString()}`,
+  );
+  core.info(
+    `DEBUG: msvcLibDir exists: ${fs.existsSync(msvcLibDir).toString()}`,
+  );
+  core.info(`DEBUG: final LIB: ${process.env.LIB ?? ""}`);
 }
 
 export async function installWin32(target: Target): Promise<string> {

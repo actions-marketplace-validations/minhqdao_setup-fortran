@@ -99984,6 +99984,13 @@ async function setupMsvcLibs(arch) {
         .filter(external_fs_.existsSync)
         .join(";");
     lib_core.exportVariable("LIB", existing ? `${libDirs};${existing}` : libDirs);
+    lib_core.info(`DEBUG: vcToolsRoot entries: ${external_fs_.readdirSync(vcToolsRoot).join(", ")}`);
+    lib_core.info(`DEBUG: winsdk10Root entries: ${external_fs_.readdirSync(winsdk10Root).join(", ")}`);
+    lib_core.info(`DEBUG: selected sdkVersion: ${sdkVersion}`);
+    lib_core.info(`DEBUG: winsdkUmDir exists: ${external_fs_.existsSync(winsdkUmDir).toString()}`);
+    lib_core.info(`DEBUG: winsdkUcrtDir exists: ${external_fs_.existsSync(winsdkUcrtDir).toString()}`);
+    lib_core.info(`DEBUG: msvcLibDir exists: ${external_fs_.existsSync(msvcLibDir).toString()}`);
+    lib_core.info(`DEBUG: final LIB: ${process.env.LIB ?? ""}`);
 }
 async function win32_installWin32(target) {
     const { major, patch: userPatch } = parseVersionInput(target.version);
