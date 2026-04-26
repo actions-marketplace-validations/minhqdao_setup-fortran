@@ -99621,7 +99621,7 @@ async function installAOCC(target) {
 //     packaging. 17 is the effective floor on arm64.
 //   - X64: LLVM 15/16 are available on jammy (22.04) only; no noble repo.
 const flang_debian_SUPPORTED_VERSIONS = {
-    [Arch.X64]: ["22", "21", "20", "19", "18", "17", "16", "15"],
+    [Arch.X64]: ["22", "21", "20", "19", "18", "17", "16"],
     [Arch.ARM64]: ["22", "21", "20", "19", "18", "17"],
 };
 // Returns the name of the canonical flang binary for a given major version.
