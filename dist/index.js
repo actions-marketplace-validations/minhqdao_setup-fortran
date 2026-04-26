@@ -99981,18 +99981,9 @@ async function win32_installWin32(target) {
         external_fs_.mkdirSync(tempExtractDir, { recursive: true });
         const extractedDir = await extractTarXz(downloadPath, tempExtractDir);
         lib_core.info("Caching...");
-        lib_core.info(`extractedDir: ${extractedDir}`);
-        lib_core.info(`toolRoot after cacheDir: ${toolRoot}`);
-        // List top-level contents of extractedDir before caching
-        for (const f of external_fs_.readdirSync(extractedDir)) {
-            lib_core.info(`  ${f}`);
-        }
         toolRoot = await cacheDir(extractedDir, "flang", patch, target.arch);
-        lib_core.info(`extractedDir: ${extractedDir}`);
-        lib_core.info(`toolRoot after cacheDir: ${toolRoot}`);
-        // List top-level contents of extractedDir before caching
-        for (const f of external_fs_.readdirSync(extractedDir)) {
-            lib_core.info(`  ${f}`);
+        for (const f of external_fs_.readdirSync(external_path_.join(toolRoot, "bin"))) {
+            lib_core.info(`  bin/${f}`);
         }
     }
     else {
