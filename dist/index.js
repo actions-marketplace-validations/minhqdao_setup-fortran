@@ -99956,7 +99956,10 @@ async function setupMsvcLibs(arch) {
     lib_core.info(`Found Visual Studio at: ${vsInstallPath}`);
     // Find the MSVC tools version (e.g. 14.38.33130).
     const vcToolsRoot = external_path_.join(vsInstallPath, "VC", "Tools", "MSVC");
-    const vcVersions = external_fs_.readdirSync(vcToolsRoot).sort().reverse();
+    const vcVersions = external_fs_.readdirSync(vcToolsRoot)
+        .filter((d) => /^\d+\.\d+\.\d+$/.test(d))
+        .sort()
+        .reverse();
     const vcVersion = vcVersions[0];
     if (!vcVersion) {
         lib_core.warning("Could not find MSVC tools version directory.");
@@ -99968,7 +99971,10 @@ async function setupMsvcLibs(arch) {
     // C:\Program Files (x86)\Windows Kits\10\Lib\<version>\um\<arch> and
     // ...\ucrt\<arch>.
     const winsdk10Root = "C:\\Program Files (x86)\\Windows Kits\\10\\Lib";
-    const sdkVersions = external_fs_.readdirSync(winsdk10Root).sort().reverse();
+    const sdkVersions = external_fs_.readdirSync(winsdk10Root)
+        .filter((d) => /^\d+\.\d+\.\d+\.\d+$/.test(d))
+        .sort()
+        .reverse();
     const sdkVersion = sdkVersions[0];
     if (!sdkVersion) {
         lib_core.warning("Could not find Windows SDK version directory.");
@@ -99984,13 +99990,6 @@ async function setupMsvcLibs(arch) {
         .filter(external_fs_.existsSync)
         .join(";");
     lib_core.exportVariable("LIB", existing ? `${libDirs};${existing}` : libDirs);
-    lib_core.info(`DEBUG: vcToolsRoot entries: ${external_fs_.readdirSync(vcToolsRoot).join(", ")}`);
-    lib_core.info(`DEBUG: winsdk10Root entries: ${external_fs_.readdirSync(winsdk10Root).join(", ")}`);
-    lib_core.info(`DEBUG: selected sdkVersion: ${sdkVersion}`);
-    lib_core.info(`DEBUG: winsdkUmDir exists: ${external_fs_.existsSync(winsdkUmDir).toString()}`);
-    lib_core.info(`DEBUG: winsdkUcrtDir exists: ${external_fs_.existsSync(winsdkUcrtDir).toString()}`);
-    lib_core.info(`DEBUG: msvcLibDir exists: ${external_fs_.existsSync(msvcLibDir).toString()}`);
-    lib_core.info(`DEBUG: final LIB: ${process.env.LIB ?? ""}`);
 }
 async function win32_installWin32(target) {
     const { major, patch: userPatch } = parseVersionInput(target.version);
