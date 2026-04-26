@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
+import * as fs from "fs";
 import * as path from "path";
 import { Arch, LATEST } from "../../types";
 import { resolveVersion } from "../../resolve_version";
@@ -43,10 +44,12 @@ export async function installDarwin(target: Target): Promise<string> {
   core.exportVariable("CXX", path.join(llvmBinDir, "clang++"));
 
   const libDir = path.join(flangOptDir, "lib");
+  const libompDir = path.join(brewPrefix, "opt", "libomp", "lib");
   const existingLibPath = process.env.LIBRARY_PATH ?? "";
+  const libPaths = [libDir, libompDir].filter(fs.existsSync).join(":");
   core.exportVariable(
     "LIBRARY_PATH",
-    existingLibPath ? `${libDir}:${existingLibPath}` : libDir,
+    existingLibPath ? `${libPaths}:${existingLibPath}` : libPaths,
   );
 
   let sdkPath = "";

@@ -32,16 +32,16 @@ jobs:
         include:
           #   - image: ubuntu-22.04
           #     toolchain: { compiler: flang, version: "16" }
-          # - image: macos-26
-          #   toolchain: { compiler: flang } # only latest version available from brew
-          # - image: macos-26-intel
-          #   toolchain: { compiler: flang }
-          # - image: macos-15
-          #   toolchain: { compiler: flang } # only latest version available from brew
-          # - image: macos-15-intel
-          #   toolchain: { compiler: flang }
-          # - image: macos-14
-          #   toolchain: { compiler: flang } # only latest version available from brew
+          - image: macos-26
+            toolchain: { compiler: flang } # only latest version available from brew
+          - image: macos-26-intel
+            toolchain: { compiler: flang } # only latest version available from brew
+          - image: macos-15
+            toolchain: { compiler: flang } # only latest version available from brew
+          - image: macos-15-intel
+            toolchain: { compiler: flang } # only latest version available from brew
+          - image: macos-14
+            toolchain: { compiler: flang } # only latest version available from brew
           # - image: windows-2025
           #   toolchain: { compiler: flang, version: "22" }
           # - image: windows-2022
@@ -52,10 +52,10 @@ jobs:
           #   toolchain: { compiler: flang, version: "21" }
           # - image: windows-11-arm
           #   toolchain: { compiler: flang, version: "20" }
-          - image: windows-2025
-            toolchain: { compiler: flang, windowsEnv: ucrt64 } # only latest version available from Pacman
-          - image: windows-2022
-            toolchain: { compiler: flang, windowsEnv: ucrt64 } # only latest version available from Pacman
+          # - image: windows-2025
+          #   toolchain: { compiler: flang, windowsEnv: ucrt64 } # only latest version available from Pacman
+          # - image: windows-2022
+          #   toolchain: { compiler: flang, windowsEnv: ucrt64 } # only latest version available from Pacman
     steps:
       - uses: actions/checkout@v6
 

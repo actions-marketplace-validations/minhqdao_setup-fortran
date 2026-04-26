@@ -99750,6 +99750,7 @@ async function flang_debian_resolveInstalledVersion() {
 
 
 
+
 // macOS support notes:
 //
 // Version selection is not possible on macOS: the `flang` formula is
@@ -99778,8 +99779,10 @@ async function darwin_installDarwin(target) {
     lib_core.exportVariable("CC", external_path_.join(llvmBinDir, "clang"));
     lib_core.exportVariable("CXX", external_path_.join(llvmBinDir, "clang++"));
     const libDir = external_path_.join(flangOptDir, "lib");
+    const libompDir = external_path_.join(brewPrefix, "opt", "libomp", "lib");
     const existingLibPath = process.env.LIBRARY_PATH ?? "";
-    lib_core.exportVariable("LIBRARY_PATH", existingLibPath ? `${libDir}:${existingLibPath}` : libDir);
+    const libPaths = [libDir, libompDir].filter(external_fs_.existsSync).join(":");
+    lib_core.exportVariable("LIBRARY_PATH", existingLibPath ? `${libPaths}:${existingLibPath}` : libPaths);
     let sdkPath = "";
     try {
         await lib_exec.exec("xcrun", ["--show-sdk-path"], {
