@@ -115,6 +115,48 @@ async function verifyPatchExists(patch: string, arch: Arch): Promise<void> {
   }
 }
 
+// Extracts a .tar.xz archive on Windows using 7-Zip (pre-installed on all
+// GitHub Actions Windows runners). The built-in tar.exe on older Windows
+// versions (e.g. windows-2022) cannot handle xz compression and will hang.
+// 7-Zip decompresses in two passes: .tar.xz -> .tar -> directory.
+// Returns the path to the extracted directory.
+async function extractTarXz(
+  archivePath: string,
+  destDir: string,
+): Promise<string> {
+  const sevenZip = "C:\\Program Files\\7-Zip\\7z.exe";
+
+  // Pass 1: decompress .tar.xz -> .tar in destDir
+  core.info("Decompressing .xz with 7-Zip (pass 1/2)...");
+  await exec.exec(`"${sevenZip}"`, ["x", archivePath, `-o${destDir}`, "-y"]);
+
+  const tarFile = fs.readdirSync(destDir).find((f) => f.endsWith(".tar"));
+
+  if (!tarFile) {
+    throw new Error(`7-Zip pass 1 did not produce a .tar file in ${destDir}.`);
+  }
+
+  // Pass 2: extract .tar -> directory in destDir
+  core.info("Extracting .tar with 7-Zip (pass 2/2)...");
+  const tarPath = path.join(destDir, tarFile);
+  await exec.exec(`"${sevenZip}"`, ["x", tarPath, `-o${destDir}`, "-y"]);
+  fs.unlinkSync(tarPath);
+
+  // The archive contains a single top-level directory
+  // (e.g. clang+llvm-22.1.4-x86_64-pc-windows-msvc). Find and return it.
+  const entries = fs.readdirSync(destDir).filter((f) => {
+    return fs.statSync(path.join(destDir, f)).isDirectory();
+  });
+
+  if (entries.length !== 1) {
+    throw new Error(
+      `Expected exactly one top-level directory after extraction, found: ${entries.join(", ")}`,
+    );
+  }
+
+  return path.join(destDir, entries[0]);
+}
+
 export async function installWin32(target: Target): Promise<string> {
   const { major, patch: userPatch } = parseVersionInput(target.version);
 
@@ -130,8 +172,8 @@ export async function installWin32(target: Target): Promise<string> {
     await verifyPatchExists(userPatch, target.arch);
     patch = userPatch;
   } else {
-    // Bare major (or no version at all, which resolveVersion maps to the first
-    // entry) — resolve the latest stable patch via the GitHub API.
+    // Bare major (or no version) — resolve the latest stable patch via the
+    // GitHub API.
     patch = await resolveLatestPatch(major);
   }
 
@@ -151,19 +193,16 @@ export async function installWin32(target: Target): Promise<string> {
     core.info(`Downloading ${filename}...`);
     const downloadPath = await tc.downloadTool(downloadUrl);
 
-    core.info("Extracting archive...");
-    const extractPath = await tc.extractTar(downloadPath, undefined, ["x"]);
+    const tempExtractDir = path.join(
+      process.env.RUNNER_TEMP ?? "C:\\Temp",
+      `flang-extract-${patch}`,
+    );
+    fs.mkdirSync(tempExtractDir, { recursive: true });
 
-    // tc.extractTar on Windows may leave a top-level subdirectory.
-    // Find it and use it as the actual tool root.
-    const entries = fs.readdirSync(extractPath);
-    const subDir =
-      entries.length === 1 &&
-      fs.statSync(path.join(extractPath, entries[0])).isDirectory()
-        ? path.join(extractPath, entries[0])
-        : extractPath;
+    const extractedDir = await extractTarXz(downloadPath, tempExtractDir);
 
-    toolRoot = await tc.cacheDir(subDir, "flang", patch, target.arch);
+    core.info("Caching...");
+    toolRoot = await tc.cacheDir(extractedDir, "flang", patch, target.arch);
   } else {
     core.info(
       `Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`,

@@ -46406,9 +46406,9 @@ function extractTar(file_1, dest_1) {
         // Create dest
         dest = yield _createExtractFolder(dest);
         // Determine whether GNU tar
-        core_debug('Checking tar --version');
+        core.debug('Checking tar --version');
         let versionOutput = '';
-        yield exec_exec('tar --version', [], {
+        yield exec('tar --version', [], {
             ignoreReturnCode: true,
             silent: true,
             listeners: {
@@ -46416,7 +46416,7 @@ function extractTar(file_1, dest_1) {
                 stderr: (data) => (versionOutput += data.toString())
             }
         });
-        core_debug(versionOutput.trim());
+        core.debug(versionOutput.trim());
         const isGnuTar = versionOutput.toUpperCase().includes('GNU TAR');
         // Initialize args
         let args;
@@ -46426,7 +46426,7 @@ function extractTar(file_1, dest_1) {
         else {
             args = [flags];
         }
-        if (isDebug() && !flags.includes('v')) {
+        if (core.isDebug() && !flags.includes('v')) {
             args.push('-v');
         }
         let destArg = dest;
@@ -46444,7 +46444,7 @@ function extractTar(file_1, dest_1) {
             args.push('--overwrite');
         }
         args.push('-C', destArg, '-f', fileArg);
-        yield exec_exec(`tar`, args);
+        yield exec(`tar`, args);
         return dest;
     });
 }
@@ -99920,6 +99920,35 @@ async function verifyPatchExists(patch, arch) {
             `See https://github.com/llvm/llvm-project/releases/tag/${tag} for available assets.`);
     }
 }
+// Extracts a .tar.xz archive on Windows using 7-Zip (pre-installed on all
+// GitHub Actions Windows runners). The built-in tar.exe on older Windows
+// versions (e.g. windows-2022) cannot handle xz compression and will hang.
+// 7-Zip decompresses in two passes: .tar.xz -> .tar -> directory.
+// Returns the path to the extracted directory.
+async function extractTarXz(archivePath, destDir) {
+    const sevenZip = "C:\\Program Files\\7-Zip\\7z.exe";
+    // Pass 1: decompress .tar.xz -> .tar in destDir
+    lib_core.info("Decompressing .xz with 7-Zip (pass 1/2)...");
+    await lib_exec.exec(`"${sevenZip}"`, ["x", archivePath, `-o${destDir}`, "-y"]);
+    const tarFile = external_fs_.readdirSync(destDir).find((f) => f.endsWith(".tar"));
+    if (!tarFile) {
+        throw new Error(`7-Zip pass 1 did not produce a .tar file in ${destDir}.`);
+    }
+    // Pass 2: extract .tar -> directory in destDir
+    lib_core.info("Extracting .tar with 7-Zip (pass 2/2)...");
+    const tarPath = external_path_.join(destDir, tarFile);
+    await lib_exec.exec(`"${sevenZip}"`, ["x", tarPath, `-o${destDir}`, "-y"]);
+    external_fs_.unlinkSync(tarPath);
+    // The archive contains a single top-level directory
+    // (e.g. clang+llvm-22.1.4-x86_64-pc-windows-msvc). Find and return it.
+    const entries = external_fs_.readdirSync(destDir).filter((f) => {
+        return external_fs_.statSync(external_path_.join(destDir, f)).isDirectory();
+    });
+    if (entries.length !== 1) {
+        throw new Error(`Expected exactly one top-level directory after extraction, found: ${entries.join(", ")}`);
+    }
+    return external_path_.join(destDir, entries[0]);
+}
 async function win32_installWin32(target) {
     const { major, patch: userPatch } = parseVersionInput(target.version);
     // Always validate the major against SUPPORTED_VERSIONS regardless of whether
@@ -99933,8 +99962,8 @@ async function win32_installWin32(target) {
         patch = userPatch;
     }
     else {
-        // Bare major (or no version at all, which resolveVersion maps to the first
-        // entry) — resolve the latest stable patch via the GitHub API.
+        // Bare major (or no version) — resolve the latest stable patch via the
+        // GitHub API.
         patch = await resolveLatestPatch(major);
     }
     const archSuffix = WINDOWS_ARCH_SUFFIX[target.arch];
@@ -99947,16 +99976,11 @@ async function win32_installWin32(target) {
     if (!toolRoot) {
         lib_core.info(`Downloading ${filename}...`);
         const downloadPath = await downloadTool(downloadUrl);
-        lib_core.info("Extracting archive...");
-        const extractPath = await extractTar(downloadPath, undefined, ["x"]);
-        // tc.extractTar on Windows may leave a top-level subdirectory.
-        // Find it and use it as the actual tool root.
-        const entries = external_fs_.readdirSync(extractPath);
-        const subDir = entries.length === 1 &&
-            external_fs_.statSync(external_path_.join(extractPath, entries[0])).isDirectory()
-            ? external_path_.join(extractPath, entries[0])
-            : extractPath;
-        toolRoot = await cacheDir(subDir, "flang", patch, target.arch);
+        const tempExtractDir = external_path_.join(process.env.RUNNER_TEMP ?? "C:\\Temp", `flang-extract-${patch}`);
+        external_fs_.mkdirSync(tempExtractDir, { recursive: true });
+        const extractedDir = await extractTarXz(downloadPath, tempExtractDir);
+        lib_core.info("Caching...");
+        toolRoot = await cacheDir(extractedDir, "flang", patch, target.arch);
     }
     else {
         lib_core.info(`Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`);
