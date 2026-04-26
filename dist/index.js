@@ -99857,9 +99857,9 @@ async function flang_darwin_resolveInstalledVersion(flangBin) {
 // Make sure the versions are always in descending order. The first one will be
 // used as the default if no version was specified by the user.
 //
-// Windows availability of official LLVM clang+llvm-*.tar.xz archives:
-//   x64:   18+ (flang absent from official x64 Windows binaries before 18)
-//   ARM64: 20+ (no ARM64 Windows archive for 18 or 19)
+// Windows availability of official LLVM installer packages:
+//   x64:   LLVM-*.exe (win64) — checking from 18+
+//   ARM64: LLVM-*.exe (woa64) — checking from 20+
 //
 // Only major versions are listed here. Full patch versions (e.g. "22.1.3")
 // are validated by extracting the major and checking it against this table.
@@ -99867,10 +99867,11 @@ const flang_win32_SUPPORTED_VERSIONS = {
     [Arch.X64]: ["22", "21", "20", "19", "18"],
     [Arch.ARM64]: ["22", "21", "20"],
 };
-// Windows archive suffix per arch, as used in official LLVM GitHub releases.
-const WINDOWS_ARCH_SUFFIX = {
-    [Arch.X64]: "x86_64-pc-windows-msvc",
-    [Arch.ARM64]: "aarch64-pc-windows-msvc",
+// Windows installer suffix per arch, as used in official LLVM GitHub releases.
+// win64 = x86_64, woa64 = Windows on ARM64.
+const WINDOWS_INSTALLER_SUFFIX = {
+    [Arch.X64]: "win64",
+    [Arch.ARM64]: "woa64",
 };
 // Accepts either a bare major ("22") or a full patch version ("22.1.3").
 // Rejects anything else (e.g. "22.1") to avoid ambiguity.
@@ -99901,11 +99902,11 @@ async function resolveLatestPatch(major) {
     return match.tag_name.replace("llvmorg-", "");
 }
 // Verifies that a specific patch release exists on GitHub and that the
-// platform-specific archive asset is present. Throws with a clear message
-// (and a link to the release page) if either check fails.
+// platform-specific installer asset is present.
 async function verifyPatchExists(patch, arch) {
     const tag = `llvmorg-${patch}`;
-    const filename = `clang+llvm-${patch}-${WINDOWS_ARCH_SUFFIX[arch]}.tar.xz`;
+    const suffix = WINDOWS_INSTALLER_SUFFIX[arch];
+    const filename = `LLVM-${patch}-${suffix}.exe`;
     lib_core.info(`Verifying that ${filename} exists for release ${tag}...`);
     const response = await fetch(`https://api.github.com/repos/llvm/llvm-project/releases/tags/${tag}`, { headers: { Accept: "application/vnd.github+json" } });
     if (response.status === 404) {
@@ -99916,74 +99917,80 @@ async function verifyPatchExists(patch, arch) {
     }
     const release = (await response.json());
     if (!release.assets.some((a) => a.name === filename)) {
-        throw new Error(`LLVM "${patch}" exists but has no Windows ${arch} archive (expected: ${filename}). ` +
+        throw new Error(`LLVM "${patch}" exists but has no Windows ${arch} installer (expected: ${filename}). ` +
             `See https://github.com/llvm/llvm-project/releases/tag/${tag} for available assets.`);
     }
 }
-// Extracts a .tar.xz archive on Windows using 7-Zip (pre-installed on all
-// GitHub Actions Windows runners). The built-in tar.exe on older Windows
-// versions (e.g. windows-2022) cannot handle xz compression and will hang.
-// 7-Zip decompresses in two passes: .tar.xz -> .tar -> directory.
-// Returns the path to the extracted directory.
-async function extractTarXz(archivePath, destDir) {
+// Extracts an LLVM .exe installer using 7-Zip (pre-installed on all GitHub
+// Actions Windows runners). LLVM .exe installers are NSIS-based and can be
+// extracted directly by 7-Zip without running the installer UI.
+// Returns the path to the directory containing the extracted contents.
+async function extractExe(installerPath, destDir) {
     const sevenZip = "C:\\Program Files\\7-Zip\\7z.exe";
-    // Pass 1: decompress .tar.xz -> .tar in destDir
-    lib_core.info("Decompressing .xz with 7-Zip (pass 1/2)...");
-    await lib_exec.exec(`"${sevenZip}"`, ["x", archivePath, `-o${destDir}`, "-y"]);
-    const tarFile = external_fs_.readdirSync(destDir)
-        .find((f) => external_fs_.statSync(external_path_.join(destDir, f)).isFile());
-    if (!tarFile) {
-        throw new Error(`7-Zip pass 1 did not produce a .tar file in ${destDir}.`);
+    lib_core.info("Extracting installer with 7-Zip...");
+    await lib_exec.exec(`"${sevenZip}"`, ["x", installerPath, `-o${destDir}`, "-y"]);
+    // DEBUG: list all extracted top-level entries so we can see the layout
+    lib_core.info("DEBUG: top-level extracted entries:");
+    for (const f of external_fs_.readdirSync(destDir)) {
+        const fullPath = external_path_.join(destDir, f);
+        const isDir = external_fs_.statSync(fullPath).isDirectory();
+        lib_core.info(`  ${isDir ? "[DIR] " : "      "}${f}`);
     }
-    // Pass 2: extract .tar -> directory in destDir
-    lib_core.info("Extracting .tar with 7-Zip (pass 2/2)...");
-    const tarPath = external_path_.join(destDir, tarFile);
-    await lib_exec.exec(`"${sevenZip}"`, ["x", tarPath, `-o${destDir}`, "-y"]);
-    external_fs_.unlinkSync(tarPath);
-    // The archive contains a single top-level directory
-    // (e.g. clang+llvm-22.1.4-x86_64-pc-windows-msvc). Find and return it.
-    const entries = external_fs_.readdirSync(destDir).filter((f) => {
-        return external_fs_.statSync(external_path_.join(destDir, f)).isDirectory();
-    });
-    if (entries.length !== 1) {
-        throw new Error(`Expected exactly one top-level directory after extraction, found: ${entries.join(", ")}`);
+    // DEBUG: search for flang anywhere in the extracted tree
+    lib_core.info("DEBUG: searching for flang in extracted tree...");
+    function findFlang(dir) {
+        for (const f of external_fs_.readdirSync(dir)) {
+            const fullPath = external_path_.join(dir, f);
+            if (f.toLowerCase().includes("flang")) {
+                lib_core.info(`  FOUND: ${fullPath}`);
+            }
+            if (external_fs_.statSync(fullPath).isDirectory()) {
+                findFlang(fullPath);
+            }
+        }
     }
-    return external_path_.join(destDir, entries[0]);
+    findFlang(destDir);
+    return destDir;
 }
 async function win32_installWin32(target) {
     const { major, patch: userPatch } = parseVersionInput(target.version);
     // Always validate the major against SUPPORTED_VERSIONS regardless of whether
-    // the user supplied a bare major or a full patch. This is the single source
-    // of truth for what we support on each arch.
+    // the user supplied a bare major or a full patch.
     resolveVersion({ ...target, version: major }, flang_win32_SUPPORTED_VERSIONS);
     let patch;
     if (userPatch !== undefined) {
-        // User pinned an exact patch — verify it exists before attempting download.
         await verifyPatchExists(userPatch, target.arch);
         patch = userPatch;
     }
     else {
-        // Bare major (or no version) — resolve the latest stable patch via the
-        // GitHub API.
         patch = await resolveLatestPatch(major);
     }
-    const archSuffix = WINDOWS_ARCH_SUFFIX[target.arch];
-    const filename = `clang+llvm-${patch}-${archSuffix}.tar.xz`;
+    const suffix = WINDOWS_INSTALLER_SUFFIX[target.arch];
+    const filename = `LLVM-${patch}-${suffix}.exe`;
     const downloadUrl = `https://github.com/llvm/llvm-project/releases/download/llvmorg-${patch}/${filename}`;
     lib_core.info(`Installing Flang ${major} (${patch}) on Windows (${target.arch})...`);
-    // Key the cache on the full patch version so a new patch release always
-    // triggers a fresh download rather than serving a stale cached binary.
     let toolRoot = find("flang", patch, target.arch);
     if (!toolRoot) {
         lib_core.info(`Downloading ${filename}...`);
         const downloadPath = await downloadTool(downloadUrl);
         const tempExtractDir = external_path_.join(process.env.RUNNER_TEMP ?? "C:\\Temp", `flang-extract-${patch}`);
         external_fs_.mkdirSync(tempExtractDir, { recursive: true });
-        const extractedDir = await extractTarXz(downloadPath, tempExtractDir);
+        const extractedDir = await extractExe(downloadPath, tempExtractDir);
+        // DEBUG: log what we're about to cache
+        lib_core.info(`DEBUG: caching contents of: ${extractedDir}`);
         lib_core.info("Caching...");
         toolRoot = await cacheDir(extractedDir, "flang", patch, target.arch);
-        for (const f of external_fs_.readdirSync(external_path_.join(toolRoot, "bin"))) {
-            lib_core.info(`  bin/${f}`);
+        // DEBUG: confirm toolRoot and list its bin contents
+        lib_core.info(`DEBUG: toolRoot = ${toolRoot}`);
+        const binDir2 = external_path_.join(toolRoot, "bin");
+        if (external_fs_.existsSync(binDir2)) {
+            lib_core.info("DEBUG: bin/ contents:");
+            for (const f of external_fs_.readdirSync(binDir2)) {
+                lib_core.info(`  bin/${f}`);
+            }
+        }
+        else {
+            lib_core.info("DEBUG: no bin/ directory found in toolRoot");
         }
     }
     else {
@@ -99999,8 +100006,6 @@ async function win32_installWin32(target) {
     lib_core.exportVariable("CXX", clangPPExe);
     lib_core.exportVariable("FORTRAN_COMPILER", "flang");
     lib_core.exportVariable("FORTRAN_COMPILER_VERSION", major);
-    // Add the lib dir to LIB so the Fortran runtime libraries are findable at
-    // link time. On Windows the linker reads LIB, not LIBRARY_PATH.
     const libDir = external_path_.join(toolRoot, "lib");
     const existingLib = process.env.LIB ?? "";
     lib_core.exportVariable("LIB", existingLib ? `${libDir};${existingLib}` : libDir);
