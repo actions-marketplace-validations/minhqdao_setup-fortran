@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as path from "path";
+import * as fs from "fs";
 import * as tc from "@actions/tool-cache";
 import { Arch, type Target } from "../../types";
 import { resolveVersion } from "../../resolve_version";
@@ -151,15 +152,18 @@ export async function installWin32(target: Target): Promise<string> {
     const downloadPath = await tc.downloadTool(downloadUrl);
 
     core.info("Extracting archive...");
-    // Strip the single top-level directory (e.g. clang+llvm-22.1.3-x86_64-...)
-    // so toolRoot is directly the install dir containing bin/, lib/, etc.
-    const extractPath = await tc.extractTar(downloadPath, undefined, [
-      "x",
-      "--strip-components=1",
-    ]);
+    const extractPath = await tc.extractTar(downloadPath, undefined, ["x"]);
 
-    core.info("Caching...");
-    toolRoot = await tc.cacheDir(extractPath, "flang", patch, target.arch);
+    // tc.extractTar on Windows may leave a top-level subdirectory.
+    // Find it and use it as the actual tool root.
+    const entries = fs.readdirSync(extractPath);
+    const subDir =
+      entries.length === 1 &&
+      fs.statSync(path.join(extractPath, entries[0])).isDirectory()
+        ? path.join(extractPath, entries[0])
+        : extractPath;
+
+    toolRoot = await tc.cacheDir(subDir, "flang", patch, target.arch);
   } else {
     core.info(
       `Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`,

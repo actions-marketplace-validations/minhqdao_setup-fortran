@@ -99853,6 +99853,7 @@ async function flang_darwin_resolveInstalledVersion(flangBin) {
 
 
 
+
 // Make sure the versions are always in descending order. The first one will be
 // used as the default if no version was specified by the user.
 //
@@ -99947,14 +99948,15 @@ async function win32_installWin32(target) {
         lib_core.info(`Downloading ${filename}...`);
         const downloadPath = await downloadTool(downloadUrl);
         lib_core.info("Extracting archive...");
-        // Strip the single top-level directory (e.g. clang+llvm-22.1.3-x86_64-...)
-        // so toolRoot is directly the install dir containing bin/, lib/, etc.
-        const extractPath = await extractTar(downloadPath, undefined, [
-            "x",
-            "--strip-components=1",
-        ]);
-        lib_core.info("Caching...");
-        toolRoot = await cacheDir(extractPath, "flang", patch, target.arch);
+        const extractPath = await extractTar(downloadPath, undefined, ["x"]);
+        // tc.extractTar on Windows may leave a top-level subdirectory.
+        // Find it and use it as the actual tool root.
+        const entries = external_fs_.readdirSync(extractPath);
+        const subDir = entries.length === 1 &&
+            external_fs_.statSync(external_path_.join(extractPath, entries[0])).isDirectory()
+            ? external_path_.join(extractPath, entries[0])
+            : extractPath;
+        toolRoot = await cacheDir(subDir, "flang", patch, target.arch);
     }
     else {
         lib_core.info(`Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`);
