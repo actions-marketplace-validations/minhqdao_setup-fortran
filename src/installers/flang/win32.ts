@@ -149,7 +149,9 @@ async function installNative(target: Target): Promise<string> {
   // resolveWindowsVersion handles patch versions internally via resolveVersion.
   // Use its return value — not target.version — so that LATEST is expanded to
   // the first supported version before parseMajorOrPatch sees it.
-  const resolved = resolveWindowsVersion(target, SUPPORTED_VERSIONS);
+  const resolved = resolveWindowsVersion(target, SUPPORTED_VERSIONS, {
+    matchMajorIfPatch: true,
+  });
   const { major, patch: userPatch } = parseMajorOrPatch(resolved);
 
   let patch: string;

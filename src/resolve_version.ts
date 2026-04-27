@@ -5,6 +5,7 @@ import { LATEST, type WindowsEnv, type Target } from "./types";
 export function resolveVersion<T extends readonly string[]>(
   target: Target,
   supportedVersions: Record<string, T | undefined>,
+  { matchMajorIfPatch = false }: { matchMajorIfPatch?: boolean } = {},
 ): string {
   const versions = supportedVersions[target.arch];
 
@@ -31,14 +32,18 @@ export function resolveVersion<T extends readonly string[]>(
   // this allows users to enter "22.1.3" when the list contains "22".
   const versionList = versions as readonly string[];
   if (!versionList.includes(version)) {
-    const major = parseMajorOrPatch(version).major;
-    if (!versionList.includes(major)) {
-      throw new Error(
-        `${target.compiler} ${version} is not supported on ` +
-          `${target.os} (${target.arch}). ` +
-          `Supported versions: ${versions.join(", ")}`,
-      );
+    if (matchMajorIfPatch) {
+      const major = parseMajorOrPatch(version).major;
+      if (versionList.includes(major)) {
+        return version;
+      }
     }
+
+    throw new Error(
+      `${target.compiler} ${version} is not supported on ` +
+        `${target.os} (${target.arch}). ` +
+        `Supported versions: ${versions.join(", ")}`,
+    );
   }
 
   return version;
@@ -50,6 +55,7 @@ export function resolveWindowsVersion(
     string,
     Record<WindowsEnv, readonly string[] | undefined> | undefined
   >,
+  { matchMajorIfPatch = false }: { matchMajorIfPatch?: boolean } = {},
 ): string {
   const archVersions = supportedVersions[target.arch];
 
@@ -68,7 +74,11 @@ export function resolveWindowsVersion(
     );
   }
 
-  return resolveVersion(target, { [target.arch]: versions });
+  return resolveVersion(
+    target,
+    { [target.arch]: versions },
+    { matchMajorIfPatch: matchMajorIfPatch },
+  );
 }
 
 // Parses a version string into a major and an optional full patch version.

@@ -90459,7 +90459,7 @@ var lib_exec = __nccwpck_require__(95236);
 ;// CONCATENATED MODULE: ./src/resolve_version.ts
 
 
-function resolveVersion(target, supportedVersions) {
+function resolveVersion(target, supportedVersions, { matchMajorIfPatch = false } = {}) {
     const versions = supportedVersions[target.arch];
     if (!versions) {
         throw new Error(`No supported versions found for ${target.compiler} on ` +
@@ -90477,16 +90477,19 @@ function resolveVersion(target, supportedVersions) {
     // this allows users to enter "22.1.3" when the list contains "22".
     const versionList = versions;
     if (!versionList.includes(version)) {
-        const major = parseMajorOrPatch(version).major;
-        if (!versionList.includes(major)) {
-            throw new Error(`${target.compiler} ${version} is not supported on ` +
-                `${target.os} (${target.arch}). ` +
-                `Supported versions: ${versions.join(", ")}`);
+        if (matchMajorIfPatch) {
+            const major = parseMajorOrPatch(version).major;
+            if (versionList.includes(major)) {
+                return version;
+            }
         }
+        throw new Error(`${target.compiler} ${version} is not supported on ` +
+            `${target.os} (${target.arch}). ` +
+            `Supported versions: ${versions.join(", ")}`);
     }
     return version;
 }
-function resolveWindowsVersion(target, supportedVersions) {
+function resolveWindowsVersion(target, supportedVersions, { matchMajorIfPatch = false } = {}) {
     const archVersions = supportedVersions[target.arch];
     if (!archVersions) {
         throw new Error(`Architecture "${target.arch}" is not supported for ${target.compiler} on Windows.`);
@@ -90496,7 +90499,7 @@ function resolveWindowsVersion(target, supportedVersions) {
     if (!versions) {
         throw new Error(`The environment "${windowsEnv}" is not supported or implemented for Windows ${target.arch}.`);
     }
-    return resolveVersion(target, { [target.arch]: versions });
+    return resolveVersion(target, { [target.arch]: versions }, { matchMajorIfPatch: matchMajorIfPatch });
 }
 // Parses a version string into a major and an optional full patch version.
 //
@@ -94582,6 +94585,7 @@ async function installGFortran(target) {
 
 
 
+
 // A clean list of supported base versions (YYYY.MINOR).
 // The first entry is used as the default when LATEST is requested.
 // ARM64 is not supported: Intel oneAPI does not provide Linux ARM64 packages.
@@ -94616,18 +94620,8 @@ const debian_SUPPORTED_VERSIONS = {
     [Arch.ARM64]: undefined,
 };
 async function debian_installDebian(target) {
-    const versions = debian_SUPPORTED_VERSIONS[target.arch];
-    if (!versions) {
-        throw new Error(`No supported versions found for ifx on Linux (${target.arch}).`);
-    }
-    const version = target.version === LATEST ? versions[0] : target.version;
-    if (!versions.includes(version)) {
-        throw new Error(`ifx ${target.version} is not supported on Linux (${target.arch}). ` +
-            `Supported versions: ${versions.join(", ")}`);
-    }
-    // Preserve originally requested version (if available) for better UX in logs
-    const displayVersion = target.version === LATEST ? version : target.version;
-    lib_core.info(`Installing ifx ${displayVersion} on Linux (${target.arch})...`);
+    const version = resolveVersion(target, debian_SUPPORTED_VERSIONS);
+    lib_core.info(`Installing ifx ${version} on Linux (${target.arch})...`);
     // Add the Intel oneAPI apt repository if not already present.
     lib_core.info("Adding Intel oneAPI apt repository...");
     await lib_exec.exec("bash", [
@@ -94689,7 +94683,7 @@ async function debian_installDebian(target) {
     lib_core.exportVariable("CC", "icx");
     lib_core.exportVariable("CXX", "icpx");
     lib_core.exportVariable("FORTRAN_COMPILER", "ifx");
-    lib_core.exportVariable("FORTRAN_COMPILER_VERSION", displayVersion);
+    lib_core.exportVariable("FORTRAN_COMPILER_VERSION", version);
     const resolvedVersion = await debian_resolveInstalledVersion();
     lib_core.info(`ifx ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
@@ -95257,7 +95251,9 @@ const MACOS_ASSET_SUFFIX = {
     [Arch.ARM64]: "macOS-ARM64",
 };
 async function darwin_installDarwin(target) {
-    const resolved = resolveVersion(target, flang_darwin_SUPPORTED_VERSIONS);
+    const resolved = resolveVersion(target, flang_darwin_SUPPORTED_VERSIONS, {
+        matchMajorIfPatch: true,
+    });
     if (resolved === LATEST) {
         return await installBrew(target);
     }
@@ -95526,7 +95522,9 @@ async function win32_installNative(target) {
     // resolveWindowsVersion handles patch versions internally via resolveVersion.
     // Use its return value — not target.version — so that LATEST is expanded to
     // the first supported version before parseMajorOrPatch sees it.
-    const resolved = resolveWindowsVersion(target, flang_win32_SUPPORTED_VERSIONS);
+    const resolved = resolveWindowsVersion(target, flang_win32_SUPPORTED_VERSIONS, {
+        matchMajorIfPatch: true,
+    });
     const { major, patch: userPatch } = parseMajorOrPatch(resolved);
     let patch;
     if (userPatch !== undefined) {

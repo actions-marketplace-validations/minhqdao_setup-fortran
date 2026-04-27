@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
-import { Arch, LATEST } from "../../types";
-import type { Target } from "../../types";
+import { Arch, type Target } from "../../types";
+import { resolveVersion } from "../../resolve_version";
 
 // A clean list of supported base versions (YYYY.MINOR).
 // The first entry is used as the default when LATEST is requested.
@@ -38,27 +38,9 @@ const SUPPORTED_VERSIONS = {
 } as const satisfies Record<Arch, readonly string[] | undefined>;
 
 export async function installDebian(target: Target): Promise<string> {
-  const versions = SUPPORTED_VERSIONS[target.arch];
+  const version = resolveVersion(target, SUPPORTED_VERSIONS);
 
-  if (!versions) {
-    throw new Error(
-      `No supported versions found for ifx on Linux (${target.arch}).`,
-    );
-  }
-
-  const version = target.version === LATEST ? versions[0] : target.version;
-
-  if (!(versions as readonly string[]).includes(version)) {
-    throw new Error(
-      `ifx ${target.version} is not supported on Linux (${target.arch}). ` +
-        `Supported versions: ${versions.join(", ")}`,
-    );
-  }
-
-  // Preserve originally requested version (if available) for better UX in logs
-  const displayVersion = target.version === LATEST ? version : target.version;
-
-  core.info(`Installing ifx ${displayVersion} on Linux (${target.arch})...`);
+  core.info(`Installing ifx ${version} on Linux (${target.arch})...`);
 
   // Add the Intel oneAPI apt repository if not already present.
   core.info("Adding Intel oneAPI apt repository...");
@@ -132,7 +114,7 @@ export async function installDebian(target: Target): Promise<string> {
   core.exportVariable("CC", "icx");
   core.exportVariable("CXX", "icpx");
   core.exportVariable("FORTRAN_COMPILER", "ifx");
-  core.exportVariable("FORTRAN_COMPILER_VERSION", displayVersion);
+  core.exportVariable("FORTRAN_COMPILER_VERSION", version);
 
   const resolvedVersion = await resolveInstalledVersion();
   core.info(`ifx ${resolvedVersion} installed successfully.`);

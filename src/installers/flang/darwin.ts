@@ -35,7 +35,9 @@ const MACOS_ASSET_SUFFIX: Record<Arch, string> = {
 };
 
 export async function installDarwin(target: Target): Promise<string> {
-  const resolved = resolveVersion(target, SUPPORTED_VERSIONS);
+  const resolved = resolveVersion(target, SUPPORTED_VERSIONS, {
+    matchMajorIfPatch: true,
+  });
 
   if (resolved === LATEST) {
     return await installBrew(target);
