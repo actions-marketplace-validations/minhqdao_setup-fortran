@@ -24,8 +24,8 @@ import type { Target } from "../../types";
 //
 // LATEST is listed first so it is the default when no version is specified.
 const SUPPORTED_VERSIONS = {
-  [Arch.ARM64]: [LATEST, "22", "21", "20", "19"],
-  [Arch.X64]: [LATEST, "22", "21", "20", "19"],
+  [Arch.ARM64]: [LATEST, "21", "20", "19"],
+  [Arch.X64]: [LATEST, "21", "20", "19"],
 } as const satisfies Record<Arch, readonly string[]>;
 
 // macOS asset suffix per arch in official LLVM GitHub releases.

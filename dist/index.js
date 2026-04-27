@@ -95108,8 +95108,8 @@ async function flang_debian_resolveInstalledVersion() {
 //
 // LATEST is listed first so it is the default when no version is specified.
 const flang_darwin_SUPPORTED_VERSIONS = {
-    [Arch.ARM64]: [LATEST, "22", "21", "20", "19"],
-    [Arch.X64]: [LATEST, "22", "21", "20", "19"],
+    [Arch.ARM64]: [LATEST, "21", "20", "19"],
+    [Arch.X64]: [LATEST, "21", "20", "19"],
 };
 // macOS asset suffix per arch in official LLVM GitHub releases.
 const MACOS_ASSET_SUFFIX = {
