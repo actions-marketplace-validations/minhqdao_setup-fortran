@@ -147,8 +147,10 @@ export async function installWin32(target: Target): Promise<string> {
 
 async function installNative(target: Target): Promise<string> {
   // resolveWindowsVersion handles patch versions internally via resolveVersion.
-  resolveWindowsVersion(target, SUPPORTED_VERSIONS);
-  const { major, patch: userPatch } = parseMajorOrPatch(target.version);
+  // Use its return value — not target.version — so that LATEST is expanded to
+  // the first supported version before parseMajorOrPatch sees it.
+  const resolved = resolveWindowsVersion(target, SUPPORTED_VERSIONS);
+  const { major, patch: userPatch } = parseMajorOrPatch(resolved);
 
   let patch: string;
 

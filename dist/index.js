@@ -95380,8 +95380,10 @@ async function win32_installWin32(target) {
 }
 async function win32_installNative(target) {
     // resolveWindowsVersion handles patch versions internally via resolveVersion.
-    resolveWindowsVersion(target, flang_win32_SUPPORTED_VERSIONS);
-    const { major, patch: userPatch } = parseMajorOrPatch(target.version);
+    // Use its return value — not target.version — so that LATEST is expanded to
+    // the first supported version before parseMajorOrPatch sees it.
+    const resolved = resolveWindowsVersion(target, flang_win32_SUPPORTED_VERSIONS);
+    const { major, patch: userPatch } = parseMajorOrPatch(resolved);
     let patch;
     if (userPatch !== undefined) {
         const filename = `LLVM-${userPatch}-${WINDOWS_INSTALLER_SUFFIX[target.arch]}.exe`;
