@@ -94592,34 +94592,53 @@ async function installGFortran(target) {
 // ARM64 is not supported: Intel oneAPI does not provide Linux ARM64 packages.
 const debian_SUPPORTED_VERSIONS = {
     [Arch.X64]: [
+        "2026.0",
         "2026.0.0",
+        "2025.3",
         "2025.3.2",
         "2025.3.1",
         "2025.3.0",
+        "2025.2",
         "2025.2.1",
         "2025.2.0",
+        "2025.1",
         "2025.1.1",
+        "2025.0",
+        "2025.0.1",
         "2025.0.0",
+        "2024.2",
         "2024.2.0",
+        "2024.1",
         "2024.1.0",
+        "2024.0",
         "2024.0.3",
         "2024.0.2",
         "2024.0.1",
         "2024.0.0",
+        "2023.2",
         "2023.2.4",
         "2023.2.3",
         "2023.2.2",
         "2023.2.1",
         "2023.2.0",
+        "2023.1",
         "2023.1.0",
+        "2023.0",
         "2023.0.0",
+        "2022.2",
         "2022.2.1",
         "2022.2.0",
+        "2022.1",
         "2022.1.0",
+        "2022.0",
         "2022.0.0",
+        "2021.4",
         "2021.4.0",
+        "2021.3",
         "2021.3.0",
+        "2021.2",
         "2021.2.0",
+        "2021.1",
         "2021.1.2",
         "2021.1.1",
         "2021.1.0",
@@ -94628,6 +94647,7 @@ const debian_SUPPORTED_VERSIONS = {
 };
 async function debian_installDebian(target) {
     const version = resolveVersion(target, debian_SUPPORTED_VERSIONS);
+    const pkgVersion = mapVersion(version);
     lib_core.info(`Installing ifx ${version} on Linux (${target.arch})...`);
     // Add the Intel oneAPI apt repository if not already present.
     lib_core.info("Adding Intel oneAPI apt repository...");
@@ -94644,16 +94664,23 @@ async function debian_installDebian(target) {
         `echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list`,
     ]);
     await lib_exec.exec("sudo", ["apt-get", "update", "-y"]);
-    // The versioned package name is intel-fortran-compiler-<version>.
-    // This installs ifx (and ifort for versions that still include it).
-    const pkgName = `intel-fortran-compiler-${version}`;
-    lib_core.info(`Installing apt package ${pkgName}...`);
+    // The versioned package names follow the intel-oneapi-compiler-<component>-<version> scheme.
+    // We install both the Fortran and C++ compilers to provide ifx, icx, and icpx.
+    const fortranPkg = `intel-oneapi-compiler-fortran-${pkgVersion}`;
+    const cppPkgBase = pkgVersion.startsWith("2024") ||
+        pkgVersion.startsWith("2025") ||
+        pkgVersion.startsWith("2026")
+        ? "intel-oneapi-compiler-dpcpp-cpp"
+        : "intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic";
+    const cppPkg = `${cppPkgBase}-${pkgVersion}`;
+    lib_core.info(`Installing apt packages ${fortranPkg} and ${cppPkg}...`);
     await lib_exec.exec("sudo", [
         "apt-get",
         "install",
         "-y",
         "--no-install-recommends",
-        pkgName,
+        fortranPkg,
+        cppPkg,
     ]);
     // Source setvars.sh and propagate the relevant environment variables so
     // subsequent steps have a correctly configured oneAPI environment.
@@ -94698,6 +94725,32 @@ async function debian_resolveInstalledVersion() {
         },
     });
     return output.trim();
+}
+/**
+ * Maps a user-provided version string to the specific version suffix used in
+ * the Intel oneAPI apt repository package names.
+ */
+function mapVersion(version) {
+    const mapping = {
+        "2026.0": "2026.0.0",
+        "2025.3": "2025.3.2",
+        "2025.2": "2025.2.1",
+        "2025.1": "2025.1.1",
+        "2025.0": "2025.0.1",
+        "2024.2": "2024.2.0",
+        "2024.1": "2024.1.0",
+        "2024.0": "2024.0.1",
+        "2023.2": "2023.2.0",
+        "2023.1": "2023.1.0",
+        "2023.0": "2023.0.0",
+        "2022.2": "2022.3.0",
+        "2022.1": "2022.2.0",
+        "2021.4": "2021.4.0",
+        "2021.3": "2021.3.0",
+        "2021.2": "2021.2.0",
+        "2021.1": "2021.1.2",
+    };
+    return mapping[version] || version;
 }
 
 ;// CONCATENATED MODULE: ./src/installers/ifx/win32.ts
