@@ -4,7 +4,13 @@ import * as path from "path";
 import * as fs from "fs";
 import * as tc from "@actions/tool-cache";
 import { Arch, LATEST, WindowsEnv, type Target } from "../../types";
-import { resolveVersion, resolveWindowsVersion } from "../../resolve_version";
+import {
+  resolveVersion,
+  resolveWindowsVersion,
+  parseMajorOrPatch,
+  resolveLatestPatch,
+  verifyAssetExists,
+} from "../../resolve_version";
 import { setupMSYS2 } from "../../setup_msys2";
 
 // Make sure the versions are always in descending order. The first one will be
@@ -41,96 +47,6 @@ const WINDOWS_INSTALLER_SUFFIX: Record<Arch, string> = {
   [Arch.X64]: "win64",
   [Arch.ARM64]: "woa64",
 };
-
-// Accepts either a bare major ("22") or a full patch version ("22.1.3").
-// Rejects anything else (e.g. "22.1") to avoid ambiguity.
-function parseVersionInput(input: string): {
-  major: string;
-  patch: string | undefined;
-} {
-  const parts = input.split(".");
-  if (parts.length === 1) return { major: parts[0], patch: undefined };
-  if (parts.length === 3) return { major: parts[0], patch: input };
-  throw new Error(
-    `Invalid version format: "${input}". ` +
-      `Specify either a major version (e.g. "22") or a full patch version (e.g. "22.1.3").`,
-  );
-}
-
-// Fetches the latest stable patch version for a given LLVM major from the
-// GitHub releases API. Returns a full version string like "22.1.3".
-async function resolveLatestPatch(major: string): Promise<string> {
-  core.info(
-    `Resolving latest patch version for LLVM ${major} via GitHub API...`,
-  );
-
-  const response = await fetch(
-    `https://api.github.com/repos/llvm/llvm-project/releases?per_page=100`,
-    { headers: { Accept: "application/vnd.github+json" } },
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `GitHub API request failed: ${response.status.toString()} ${response.statusText}`,
-    );
-  }
-
-  const releases = (await response.json()) as {
-    tag_name: string;
-    prerelease: boolean;
-  }[];
-  const match = releases.find(
-    (r) =>
-      r.tag_name.startsWith(`llvmorg-${major}.`) &&
-      !r.prerelease &&
-      !r.tag_name.includes("rc"),
-  );
-
-  if (!match) {
-    throw new Error(
-      `No stable release found for LLVM major ${major} in the last 100 GitHub releases.`,
-    );
-  }
-
-  return match.tag_name.replace("llvmorg-", "");
-}
-
-// Verifies that a specific patch release exists on GitHub and that the
-// platform-specific installer asset is present.
-async function verifyPatchExists(patch: string, arch: Arch): Promise<void> {
-  const tag = `llvmorg-${patch}`;
-  const suffix = WINDOWS_INSTALLER_SUFFIX[arch];
-  const filename = `LLVM-${patch}-${suffix}.exe`;
-
-  core.info(`Verifying that ${filename} exists for release ${tag}...`);
-
-  const response = await fetch(
-    `https://api.github.com/repos/llvm/llvm-project/releases/tags/${tag}`,
-    { headers: { Accept: "application/vnd.github+json" } },
-  );
-
-  if (response.status === 404) {
-    throw new Error(
-      `Requested LLVM version "${patch}" does not exist (no release for ${tag}).`,
-    );
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      `GitHub API request failed for ${tag}: ${response.status.toString()} ${response.statusText}`,
-    );
-  }
-
-  const release = (await response.json()) as { assets: { name: string }[] };
-
-  if (!release.assets.some((a) => a.name === filename)) {
-    throw new Error(
-      `LLVM "${patch}" exists but has no Windows ${arch} installer (expected: ${filename}). ` +
-        `See https://github.com/llvm/llvm-project/releases/tag/${tag} for available assets.`,
-    );
-  }
-}
-
 // Extracts an LLVM NSIS .exe installer using 7-Zip (pre-installed on all
 // GitHub Actions Windows runners).
 async function extractExe(
@@ -231,7 +147,7 @@ export async function installWin32(target: Target): Promise<string> {
 }
 
 async function installNative(target: Target): Promise<string> {
-  const { major, patch: userPatch } = parseVersionInput(
+  const { major, patch: userPatch } = parseMajorOrPatch(
     resolveWindowsVersion(target, SUPPORTED_VERSIONS),
   );
 
@@ -250,10 +166,11 @@ async function installNative(target: Target): Promise<string> {
   let patch: string;
 
   if (userPatch !== undefined) {
-    await verifyPatchExists(userPatch, target.arch);
+    const filename = `LLVM-${userPatch}-${WINDOWS_INSTALLER_SUFFIX[target.arch]}.exe`;
+    await verifyAssetExists("llvm/llvm-project", userPatch, filename);
     patch = userPatch;
   } else {
-    patch = await resolveLatestPatch(major);
+    patch = await resolveLatestPatch("llvm/llvm-project", major);
   }
 
   const suffix = WINDOWS_INSTALLER_SUFFIX[target.arch];

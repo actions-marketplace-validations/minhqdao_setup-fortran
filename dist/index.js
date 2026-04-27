@@ -90458,6 +90458,7 @@ function parseInputs() {
 var lib_exec = __nccwpck_require__(95236);
 ;// CONCATENATED MODULE: ./src/resolve_version.ts
 
+
 function resolveVersion(target, supportedVersions) {
     const versions = supportedVersions[target.arch];
     if (!versions) {
@@ -90488,6 +90489,75 @@ function resolveWindowsVersion(target, supportedVersions) {
         throw new Error(`The environment "${windowsEnv}" is not supported or implemented for Windows ${target.arch}.`);
     }
     return resolveVersion(target, { [target.arch]: versions });
+}
+// Accepts either a bare major ("22") or a full patch version ("22.1.3").
+// Rejects anything else (e.g. "22.1") to avoid ambiguity.
+function parseMaxVersion(input) {
+    const parts = input.split(".");
+    if (parts.length === 1)
+        return { major: parts[0], patch: undefined };
+    if (parts.length === 3)
+        return { major: parts[0], patch: input };
+    throw new Error(`Invalid version format: "${input}". ` +
+        `Specify either a major version (e.g. "22") or a full patch version (e.g. "22.1.3").`);
+}
+// Parses a version string into a major and an optional full patch version.
+//
+// Accepted formats:
+//   "22"       → { major: "22", patch: undefined }  — resolve latest patch via API
+//   "22.1.3"   → { major: "22", patch: "22.1.3" }   — use exactly this patch
+//
+// Any other format (e.g. "22.1") is rejected to avoid ambiguity.
+function parseMajorOrPatch(input) {
+    const parts = input.split(".");
+    if (parts.length === 1)
+        return { major: parts[0], patch: undefined };
+    if (parts.length === 3)
+        return { major: parts[0], patch: input };
+    throw new Error(`Invalid version format: "${input}". ` +
+        `Specify either a major version (e.g. "22") or a full patch version (e.g. "22.1.3").`);
+}
+// Fetches the latest stable patch version for a given major from a GitHub
+// repository's releases. Returns a full version string like "22.1.3".
+//
+// The tag is expected to follow the "llvmorg-X.Y.Z" convention used by
+// llvm/llvm-project. For other repos, tags are matched by prefix "{major}.".
+async function resolveLatestPatch(repo, major, tagPrefix = `llvmorg-${major}.`, tagStripper = (tag) => tag.replace("llvmorg-", "")) {
+    lib_core.info(`Resolving latest patch version for ${repo} major ${major} via GitHub API...`);
+    const response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=100`, { headers: { Accept: "application/vnd.github+json" } });
+    if (!response.ok) {
+        throw new Error(`GitHub API request failed: ${response.status.toString()} ${response.statusText}`);
+    }
+    const releases = (await response.json());
+    const match = releases.find((r) => r.tag_name.startsWith(tagPrefix) &&
+        !r.prerelease &&
+        !r.tag_name.includes("rc"));
+    if (!match) {
+        throw new Error(`No stable release found for ${repo} major ${major} in the last 100 GitHub releases.`);
+    }
+    return tagStripper(match.tag_name);
+}
+// Verifies that a specific release exists on GitHub and that the named asset
+// is present. Throws with a clear message (and a link to the release page)
+// if either check fails.
+//
+// tagFromPatch: converts a patch version string to the GitHub release tag.
+//   Default: (patch) => `llvmorg-${patch}` (LLVM convention).
+async function verifyAssetExists(repo, patch, filename, tagFromPatch = (p) => `llvmorg-${p}`) {
+    const tag = tagFromPatch(patch);
+    lib_core.info(`Verifying that ${filename} exists for ${repo} release ${tag}...`);
+    const response = await fetch(`https://api.github.com/repos/${repo}/releases/tags/${tag}`, { headers: { Accept: "application/vnd.github+json" } });
+    if (response.status === 404) {
+        throw new Error(`Requested version "${patch}" does not exist (no release for ${tag} in ${repo}).`);
+    }
+    if (!response.ok) {
+        throw new Error(`GitHub API request failed for ${tag}: ${response.status.toString()} ${response.statusText}`);
+    }
+    const release = (await response.json());
+    if (!release.assets.some((a) => a.name === filename)) {
+        throw new Error(`Release ${tag} in ${repo} exists but has no asset "${filename}". ` +
+            `See https://github.com/${repo}/releases/tag/${tag} for available assets.`);
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/installers/gfortran/debian.ts
@@ -93943,9 +94013,9 @@ function extractTar(file_1, dest_1) {
         // Create dest
         dest = yield _createExtractFolder(dest);
         // Determine whether GNU tar
-        core.debug('Checking tar --version');
+        core_debug('Checking tar --version');
         let versionOutput = '';
-        yield exec('tar --version', [], {
+        yield exec_exec('tar --version', [], {
             ignoreReturnCode: true,
             silent: true,
             listeners: {
@@ -93953,7 +94023,7 @@ function extractTar(file_1, dest_1) {
                 stderr: (data) => (versionOutput += data.toString())
             }
         });
-        core.debug(versionOutput.trim());
+        core_debug(versionOutput.trim());
         const isGnuTar = versionOutput.toUpperCase().includes('GNU TAR');
         // Initialize args
         let args;
@@ -93963,7 +94033,7 @@ function extractTar(file_1, dest_1) {
         else {
             args = [flags];
         }
-        if (core.isDebug() && !flags.includes('v')) {
+        if (isDebug() && !flags.includes('v')) {
             args.push('-v');
         }
         let destArg = dest;
@@ -93981,7 +94051,7 @@ function extractTar(file_1, dest_1) {
             args.push('--overwrite');
         }
         args.push('-C', destArg, '-f', fileArg);
-        yield exec(`tar`, args);
+        yield exec_exec(`tar`, args);
         return dest;
     });
 }
@@ -95016,19 +95086,49 @@ async function flang_debian_resolveInstalledVersion() {
 
 
 
-// macOS support notes:
+
+// Make sure the versions are always in descending order. The first one will be
+// used as the default if no version was specified by the user.
 //
-// Version selection is not possible on macOS: the `flang` formula is
-// unversioned and always tracks the latest LLVM release. The versioned
-// `llvm@N` formulae exist but do not include flang as a built component.
-// Any version input is accepted and silently ignored; an info message
-// explains this so users copying a Linux workflow aren't surprised.
+// LATEST (default) → install via Homebrew (always the freshest, no maintenance).
+// Major or patch version → download from official LLVM GitHub releases.
+//
+// macOS asset naming on GitHub releases:
+//   ARM64: LLVM-{patch}-macOS-ARM64.tar.xz  (available from at least 19+)
+//   X64:   LLVM-{patch}-macOS-X64.tar.xz    (availability varies; verified at runtime)
+//
+// LATEST is listed first so it is the default when no version is specified.
 const flang_darwin_SUPPORTED_VERSIONS = {
-    [Arch.ARM64]: [LATEST],
-    [Arch.X64]: [LATEST],
+    [Arch.ARM64]: [LATEST, "22", "21", "20", "19"],
+    [Arch.X64]: [LATEST, "22", "21", "20", "19"],
+};
+// macOS asset suffix per arch in official LLVM GitHub releases.
+const MACOS_ASSET_SUFFIX = {
+    [Arch.ARM64]: "macOS-ARM64",
+    [Arch.X64]: "macOS-X64",
 };
 async function darwin_installDarwin(target) {
-    resolveVersion(target, flang_darwin_SUPPORTED_VERSIONS);
+    const resolved = resolveVersion(target, flang_darwin_SUPPORTED_VERSIONS);
+    if (resolved === LATEST) {
+        return await installBrew(target);
+    }
+    // User specified a major or full patch version — use GitHub releases.
+    const { major, patch: userPatch } = parseMajorOrPatch(resolved);
+    let patch;
+    if (userPatch !== undefined) {
+        const filename = `LLVM-${userPatch}-${MACOS_ASSET_SUFFIX[target.arch]}.tar.xz`;
+        await verifyAssetExists("llvm/llvm-project", userPatch, filename);
+        patch = userPatch;
+    }
+    else {
+        patch = await resolveLatestPatch("llvm/llvm-project", major);
+    }
+    return await installFromGitHub(target, major, patch);
+}
+// Installs flang via Homebrew. The `flang` formula is unversioned and always
+// tracks the latest LLVM release. Any version input that resolved to LATEST
+// ends up here.
+async function installBrew(target) {
     lib_core.info(`Installing Flang on macOS (${target.arch}) via Homebrew...`);
     lib_core.info(`Note: the Homebrew flang formula is unversioned — the latest available ` +
         `release will be installed regardless of any version input.`);
@@ -95037,12 +95137,15 @@ async function darwin_installDarwin(target) {
     const flangOptDir = external_path_.join(brewPrefix, "opt", "flang");
     const binDir = external_path_.join(flangOptDir, "bin");
     lib_core.addPath(binDir);
-    const flangBin = await resolveFlangBinary(binDir);
+    const flangBin = resolveFlangBinary(binDir);
     lib_core.info(`Using flang binary: ${flangBin}`);
     const llvmBinDir = external_path_.join(brewPrefix, "opt", "llvm", "bin");
     lib_core.exportVariable("FC", flangBin);
     lib_core.exportVariable("CC", external_path_.join(llvmBinDir, "clang"));
     lib_core.exportVariable("CXX", external_path_.join(llvmBinDir, "clang++"));
+    lib_core.exportVariable("FORTRAN_COMPILER", "flang");
+    lib_core.exportVariable("FORTRAN_COMPILER_VERSION", LATEST);
+    // libomp.dylib lives in the llvm formula's lib dir, not a standalone formula.
     const libDir = external_path_.join(flangOptDir, "lib");
     const libompDir = external_path_.join(brewPrefix, "opt", "llvm", "lib");
     const existingLibPath = process.env.LIBRARY_PATH ?? "";
@@ -95065,14 +95168,73 @@ async function darwin_installDarwin(target) {
         lib_core.warning(`Could not determine SDKROOT via xcrun: ${error}`);
     }
     const resolvedVersion = await flang_darwin_resolveInstalledVersion(flangBin);
-    lib_core.info(`Flang ${resolvedVersion} installed successfully on macOS.`);
+    lib_core.info(`Flang ${resolvedVersion} installed successfully on macOS (Homebrew).`);
     return resolvedVersion;
 }
-async function resolveFlangBinary(binDir) {
-    const fs = await Promise.resolve(/* import() */).then(__nccwpck_require__.t.bind(__nccwpck_require__, 79896, 23));
+// Downloads and installs a specific flang version from official LLVM GitHub
+// releases as a .tar.xz archive.
+async function installFromGitHub(target, major, patch) {
+    const suffix = MACOS_ASSET_SUFFIX[target.arch];
+    const filename = `LLVM-${patch}-${suffix}.tar.xz`;
+    const downloadUrl = `https://github.com/llvm/llvm-project/releases/download/llvmorg-${patch}/${filename}`;
+    lib_core.info(`Installing Flang ${major} (${patch}) on macOS (${target.arch})...`);
+    // Key the cache on the full patch version so a new patch release always
+    // triggers a fresh download rather than serving a stale cached binary.
+    let toolRoot = find("flang", patch, target.arch);
+    if (!toolRoot) {
+        lib_core.info(`Downloading ${filename}...`);
+        const downloadPath = await downloadTool(downloadUrl);
+        lib_core.info("Extracting archive...");
+        // The archive has a single top-level directory; strip it so toolRoot is
+        // directly the install dir containing bin/, lib/, etc.
+        const extractPath = await extractTar(downloadPath, undefined, [
+            "xJ",
+            "--strip-components=1",
+        ]);
+        lib_core.info("Caching...");
+        toolRoot = await cacheDir(extractPath, "flang", patch, target.arch);
+    }
+    else {
+        lib_core.info(`Flang ${patch} found in tool cache at ${toolRoot}, skipping download.`);
+    }
+    const binDir = external_path_.join(toolRoot, "bin");
+    lib_core.addPath(binDir);
+    const flangBin = resolveFlangBinary(binDir);
+    lib_core.info(`Using flang binary: ${flangBin}`);
+    const libDir = external_path_.join(toolRoot, "lib");
+    const existingLibPath = process.env.LIBRARY_PATH ?? "";
+    lib_core.exportVariable("LIBRARY_PATH", existingLibPath ? `${libDir}:${existingLibPath}` : libDir);
+    lib_core.exportVariable("FC", flangBin);
+    lib_core.exportVariable("CC", external_path_.join(binDir, "clang"));
+    lib_core.exportVariable("CXX", external_path_.join(binDir, "clang++"));
+    lib_core.exportVariable("FORTRAN_COMPILER", "flang");
+    lib_core.exportVariable("FORTRAN_COMPILER_VERSION", major);
+    let sdkPath = "";
+    try {
+        await lib_exec.exec("xcrun", ["--show-sdk-path"], {
+            listeners: {
+                stdout: (data) => {
+                    sdkPath += data.toString().trim();
+                },
+            },
+        });
+        if (sdkPath)
+            lib_core.exportVariable("SDKROOT", sdkPath);
+    }
+    catch (e) {
+        const error = e instanceof Error ? e.message : String(e);
+        lib_core.warning(`Could not determine SDKROOT via xcrun: ${error}`);
+    }
+    const resolvedVersion = await flang_darwin_resolveInstalledVersion(flangBin);
+    lib_core.info(`Flang ${resolvedVersion} installed successfully on macOS (GitHub releases).`);
+    return resolvedVersion;
+}
+// Probes for the flang binary name in the given bin dir.
+// LLVM 20+ uses `flang`; earlier versions used `flang-new`.
+function resolveFlangBinary(binDir) {
     for (const name of ["flang", "flang-new"]) {
         const candidate = external_path_.join(binDir, name);
-        if (fs.existsSync(candidate))
+        if (external_fs_.existsSync(candidate))
             return candidate;
     }
     throw new Error(`Could not find flang binary in ${binDir}. Checked: flang, flang-new.`);
@@ -95139,54 +95301,6 @@ const WINDOWS_INSTALLER_SUFFIX = {
     [Arch.X64]: "win64",
     [Arch.ARM64]: "woa64",
 };
-// Accepts either a bare major ("22") or a full patch version ("22.1.3").
-// Rejects anything else (e.g. "22.1") to avoid ambiguity.
-function parseVersionInput(input) {
-    const parts = input.split(".");
-    if (parts.length === 1)
-        return { major: parts[0], patch: undefined };
-    if (parts.length === 3)
-        return { major: parts[0], patch: input };
-    throw new Error(`Invalid version format: "${input}". ` +
-        `Specify either a major version (e.g. "22") or a full patch version (e.g. "22.1.3").`);
-}
-// Fetches the latest stable patch version for a given LLVM major from the
-// GitHub releases API. Returns a full version string like "22.1.3".
-async function resolveLatestPatch(major) {
-    lib_core.info(`Resolving latest patch version for LLVM ${major} via GitHub API...`);
-    const response = await fetch(`https://api.github.com/repos/llvm/llvm-project/releases?per_page=100`, { headers: { Accept: "application/vnd.github+json" } });
-    if (!response.ok) {
-        throw new Error(`GitHub API request failed: ${response.status.toString()} ${response.statusText}`);
-    }
-    const releases = (await response.json());
-    const match = releases.find((r) => r.tag_name.startsWith(`llvmorg-${major}.`) &&
-        !r.prerelease &&
-        !r.tag_name.includes("rc"));
-    if (!match) {
-        throw new Error(`No stable release found for LLVM major ${major} in the last 100 GitHub releases.`);
-    }
-    return match.tag_name.replace("llvmorg-", "");
-}
-// Verifies that a specific patch release exists on GitHub and that the
-// platform-specific installer asset is present.
-async function verifyPatchExists(patch, arch) {
-    const tag = `llvmorg-${patch}`;
-    const suffix = WINDOWS_INSTALLER_SUFFIX[arch];
-    const filename = `LLVM-${patch}-${suffix}.exe`;
-    lib_core.info(`Verifying that ${filename} exists for release ${tag}...`);
-    const response = await fetch(`https://api.github.com/repos/llvm/llvm-project/releases/tags/${tag}`, { headers: { Accept: "application/vnd.github+json" } });
-    if (response.status === 404) {
-        throw new Error(`Requested LLVM version "${patch}" does not exist (no release for ${tag}).`);
-    }
-    if (!response.ok) {
-        throw new Error(`GitHub API request failed for ${tag}: ${response.status.toString()} ${response.statusText}`);
-    }
-    const release = (await response.json());
-    if (!release.assets.some((a) => a.name === filename)) {
-        throw new Error(`LLVM "${patch}" exists but has no Windows ${arch} installer (expected: ${filename}). ` +
-            `See https://github.com/llvm/llvm-project/releases/tag/${tag} for available assets.`);
-    }
-}
 // Extracts an LLVM NSIS .exe installer using 7-Zip (pre-installed on all
 // GitHub Actions Windows runners).
 async function extractExe(installerPath, destDir) {
@@ -95260,7 +95374,7 @@ async function win32_installWin32(target) {
     }
 }
 async function win32_installNative(target) {
-    const { major, patch: userPatch } = parseVersionInput(resolveWindowsVersion(target, flang_win32_SUPPORTED_VERSIONS));
+    const { major, patch: userPatch } = parseMajorOrPatch(resolveWindowsVersion(target, flang_win32_SUPPORTED_VERSIONS));
     // Re-validate the major explicitly — resolveWindowsVersion already checks
     // against SUPPORTED_VERSIONS, but parseVersionInput may have produced a
     // major from a full user-supplied patch (e.g. "22.1.3" → major "22") that
@@ -95271,11 +95385,12 @@ async function win32_installNative(target) {
     });
     let patch;
     if (userPatch !== undefined) {
-        await verifyPatchExists(userPatch, target.arch);
+        const filename = `LLVM-${userPatch}-${WINDOWS_INSTALLER_SUFFIX[target.arch]}.exe`;
+        await verifyAssetExists("llvm/llvm-project", userPatch, filename);
         patch = userPatch;
     }
     else {
-        patch = await resolveLatestPatch(major);
+        patch = await resolveLatestPatch("llvm/llvm-project", major);
     }
     const suffix = WINDOWS_INSTALLER_SUFFIX[target.arch];
     const filename = `LLVM-${patch}-${suffix}.exe`;
