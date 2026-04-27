@@ -27,13 +27,15 @@ export async function installWin32(target: Target): Promise<string> {
     core.info(`Restored ifx installation from cache (${cacheHit}).`);
   } else {
     core.info("Cache miss — installing via winget...");
-    await exec.exec("winget", [
-      "install",
-      "--id",
-      "Intel.OneAPI.HPCToolkit",
-      "--accept-source-agreements",
-      "--accept-package-agreements",
-      "--silent",
+    await exec.exec("powershell", [
+      "-Command",
+      [
+        "winget install",
+        "--id Intel.OneAPI.HPCToolkit",
+        "--accept-source-agreements",
+        "--accept-package-agreements",
+        "--silent",
+      ].join(" "),
     ]);
     core.info("Saving installation to cache...");
     await cache.saveCache(cachePaths, cacheKey);

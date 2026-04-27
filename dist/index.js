@@ -94727,13 +94727,15 @@ async function win32_installWin32(target) {
     }
     else {
         lib_core.info("Cache miss — installing via winget...");
-        await lib_exec.exec("winget", [
-            "install",
-            "--id",
-            "Intel.OneAPI.HPCToolkit",
-            "--accept-source-agreements",
-            "--accept-package-agreements",
-            "--silent",
+        await lib_exec.exec("powershell", [
+            "-Command",
+            [
+                "winget install",
+                "--id Intel.OneAPI.HPCToolkit",
+                "--accept-source-agreements",
+                "--accept-package-agreements",
+                "--silent",
+            ].join(" "),
         ]);
         lib_core.info("Saving installation to cache...");
         await cache.saveCache(cachePaths, cacheKey);
