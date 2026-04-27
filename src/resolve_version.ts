@@ -25,20 +25,20 @@ export function resolveVersion<T extends readonly string[]>(
     );
   }
 
-  // If a full patch version was supplied (e.g. "22.1.0"), validate either the
-  // major or the full version against the supported list. The caller is
-  // responsible for using the full patch for download resolution.
-  const { major } = parseMajorOrPatch(version);
-
-  if (
-    !(versions as readonly string[]).includes(major) &&
-    !(versions as readonly string[]).includes(version)
-  ) {
-    throw new Error(
-      `${target.compiler} ${version} is not supported on ` +
-        `${target.os} (${target.arch}). ` +
-        `Supported versions: ${versions.join(", ")}`,
-    );
+  // Try exact match first (covers Intel-style versions like "2025.1.0" and
+  // LLVM-style major-only entries like "22"). If that fails and the version
+  // looks like a full x.y.z patch, fall back to matching just the major —
+  // this allows users to enter "22.1.3" when the list contains "22".
+  const versionList = versions as readonly string[];
+  if (!versionList.includes(version)) {
+    const major = parseMajorOrPatch(version).major;
+    if (!versionList.includes(major)) {
+      throw new Error(
+        `${target.compiler} ${version} is not supported on ` +
+          `${target.os} (${target.arch}). ` +
+          `Supported versions: ${versions.join(", ")}`,
+      );
+    }
   }
 
   return version;
@@ -75,22 +75,19 @@ export function resolveWindowsVersion(
 //
 // Accepted formats:
 //   "22"       → { major: "22", patch: undefined }  — resolve latest patch via API
-//   "22.1"     → { major: "22", patch: "22.1" }     — use exactly this minor
 //   "22.1.3"   → { major: "22", patch: "22.1.3" }   — use exactly this patch
 //
-// Other formats are rejected to avoid ambiguity.
+// Any other format (e.g. "22.1") is rejected to avoid ambiguity.
 export function parseMajorOrPatch(input: string): {
   major: string;
   patch: string | undefined;
 } {
   const parts = input.split(".");
   if (parts.length === 1) return { major: parts[0], patch: undefined };
-  if (parts.length === 2 || parts.length === 3) {
-    return { major: parts[0], patch: input };
-  }
+  if (parts.length === 3) return { major: parts[0], patch: input };
   throw new Error(
     `Invalid version format: "${input}". ` +
-      `Specify a major version (e.g. "22"), a minor version (e.g. "22.1"), or a full patch version (e.g. "22.1.3").`,
+      `Specify either a major version (e.g. "22") or a full patch version (e.g. "22.1.3").`,
   );
 }
 

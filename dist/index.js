@@ -90471,15 +90471,18 @@ function resolveVersion(target, supportedVersions) {
         throw new Error(`No supported versions found for ${target.compiler} on ` +
             `${target.os} (${target.arch}).`);
     }
-    // If a full patch version was supplied (e.g. "22.1.0"), validate either the
-    // major or the full version against the supported list. The caller is
-    // responsible for using the full patch for download resolution.
-    const { major } = parseMajorOrPatch(version);
-    if (!versions.includes(major) &&
-        !versions.includes(version)) {
-        throw new Error(`${target.compiler} ${version} is not supported on ` +
-            `${target.os} (${target.arch}). ` +
-            `Supported versions: ${versions.join(", ")}`);
+    // Try exact match first (covers Intel-style versions like "2025.1.0" and
+    // LLVM-style major-only entries like "22"). If that fails and the version
+    // looks like a full x.y.z patch, fall back to matching just the major —
+    // this allows users to enter "22.1.3" when the list contains "22".
+    const versionList = versions;
+    if (!versionList.includes(version)) {
+        const major = parseMajorOrPatch(version).major;
+        if (!versionList.includes(major)) {
+            throw new Error(`${target.compiler} ${version} is not supported on ` +
+                `${target.os} (${target.arch}). ` +
+                `Supported versions: ${versions.join(", ")}`);
+        }
     }
     return version;
 }
@@ -90499,19 +90502,17 @@ function resolveWindowsVersion(target, supportedVersions) {
 //
 // Accepted formats:
 //   "22"       → { major: "22", patch: undefined }  — resolve latest patch via API
-//   "22.1"     → { major: "22", patch: "22.1" }     — use exactly this minor
 //   "22.1.3"   → { major: "22", patch: "22.1.3" }   — use exactly this patch
 //
-// Other formats are rejected to avoid ambiguity.
+// Any other format (e.g. "22.1") is rejected to avoid ambiguity.
 function parseMajorOrPatch(input) {
     const parts = input.split(".");
     if (parts.length === 1)
         return { major: parts[0], patch: undefined };
-    if (parts.length === 2 || parts.length === 3) {
+    if (parts.length === 3)
         return { major: parts[0], patch: input };
-    }
     throw new Error(`Invalid version format: "${input}". ` +
-        `Specify a major version (e.g. "22"), a minor version (e.g. "22.1"), or a full patch version (e.g. "22.1.3").`);
+        `Specify either a major version (e.g. "22") or a full patch version (e.g. "22.1.3").`);
 }
 // Fetches the latest stable patch version for a given major from a GitHub
 // repository's releases. Returns a full version string like "22.1.3".
@@ -94577,9 +94578,146 @@ async function installGFortran(target) {
     }
 }
 
-;// CONCATENATED MODULE: ./src/installers/ifx/index.ts
-async function installIFX(_) {
+;// CONCATENATED MODULE: ./src/installers/ifx/debian.ts
+
+
+
+
+// Make sure the versions are always in descending order. The first one will be
+// used as the default if no version was specified by the user.
+//
+// Intel ifx versions follow a YY.minor[.patch] scheme (e.g. "2025.1.0").
+// Both "2025.1" and "2025.1.0" are valid inputs and matched exactly against
+// this list — no major-stripping is applied for Intel versions.
+// ARM64 is not supported: Intel oneAPI does not provide Linux ARM64 packages.
+const debian_SUPPORTED_VERSIONS = {
+    [Arch.X64]: [
+        "2026.0.0",
+        "2025.3.2",
+        "2025.3.1",
+        "2025.3.0",
+        "2025.2.1",
+        "2025.2.0",
+        "2025.1.1",
+        "2025.0.0",
+        "2024.2.0",
+        "2024.1.0",
+        "2024.0.3",
+        "2024.0.2",
+        "2024.0.1",
+        "2024.0.0",
+        "2023.2.4",
+        "2023.2.3",
+        "2023.2.2",
+        "2023.2.1",
+        "2023.2.0",
+        "2023.1.0",
+        "2023.0.0",
+        "2022.2.1",
+        "2022.2.0",
+        "2022.1.0",
+        "2022.0.0",
+        "2021.4.0",
+        "2021.3.0",
+        "2021.2.0",
+        "2021.1.2",
+        "2021.1.1",
+        "2021.1.0",
+    ],
+    [Arch.ARM64]: undefined,
+};
+async function debian_installDebian(target) {
+    const version = resolveVersion(target, debian_SUPPORTED_VERSIONS);
+    lib_core.info(`Installing ifx ${version} on Linux (${target.arch})...`);
+    // Add the Intel oneAPI apt repository if not already present.
+    lib_core.info("Adding Intel oneAPI apt repository...");
+    await lib_exec.exec("bash", [
+        "-c",
+        [
+            `wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB`,
+            `| gpg --dearmor`,
+            `| sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null`,
+        ].join(" "),
+    ]);
+    await lib_exec.exec("bash", [
+        "-c",
+        `echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list`,
+    ]);
+    await lib_exec.exec("sudo", ["apt-get", "update", "-y"]);
+    // The versioned package name is intel-fortran-compiler-<version>.
+    // This installs ifx (and ifort for versions that still include it).
+    const pkgName = `intel-fortran-compiler-${version}`;
+    lib_core.info(`Installing apt package ${pkgName}...`);
+    await lib_exec.exec("sudo", [
+        "apt-get",
+        "install",
+        "-y",
+        "--no-install-recommends",
+        pkgName,
+    ]);
+    // Source setvars.sh and propagate the relevant environment variables so
+    // subsequent steps have a correctly configured oneAPI environment.
+    // The setvars.sh location follows the Unified Directory Layout (2024.0+).
+    const setVarsScript = "/opt/intel/oneapi/setvars.sh";
+    lib_core.info(`Sourcing ${setVarsScript} and exporting environment...`);
+    let envOutput = "";
+    await lib_exec.exec("bash", ["-c", `source "${setVarsScript}" --force && env`], {
+        listeners: {
+            stdout: (data) => {
+                envOutput += data.toString();
+            },
+        },
+    });
+    for (const line of envOutput.split("\n")) {
+        const eqIdx = line.indexOf("=");
+        if (eqIdx === -1)
+            continue;
+        const key = line.substring(0, eqIdx);
+        const val = line.substring(eqIdx + 1);
+        // Only export oneAPI/Intel/PATH-related variables.
+        if (/^(PATH|LD_LIBRARY_PATH|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
+            lib_core.exportVariable(key, val);
+        }
+    }
+    lib_core.exportVariable("FC", "ifx");
+    lib_core.exportVariable("CC", "icx");
+    lib_core.exportVariable("CXX", "icpx");
+    lib_core.exportVariable("FORTRAN_COMPILER", "ifx");
+    lib_core.exportVariable("FORTRAN_COMPILER_VERSION", version);
+    const resolvedVersion = await debian_resolveInstalledVersion();
+    lib_core.info(`ifx ${resolvedVersion} installed successfully.`);
+    return resolvedVersion;
+}
+async function debian_resolveInstalledVersion() {
+    let output = "";
+    await lib_exec.exec("ifx", ["--version"], {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            },
+        },
+    });
+    return output.trim();
+}
+
+;// CONCATENATED MODULE: ./src/installers/ifx/win32.ts
+async function win32_installWin32(_) {
     return Promise.reject(new Error("Not implemented"));
+}
+
+;// CONCATENATED MODULE: ./src/installers/ifx/index.ts
+
+
+
+async function installIFX(target) {
+    switch (target.os) {
+        case OS.Linux:
+            return await debian_installDebian(target);
+        case OS.MacOS:
+            throw new Error(`IFX is not supported on macOS`);
+        case OS.Windows:
+            return await win32_installWin32(target);
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/installers/ifort/index.ts
@@ -94601,7 +94739,7 @@ var cache = __nccwpck_require__(5116);
 // used as the default if no version was specified by the user.
 // Version scheme: YY.M (e.g. "26.1" = January 2026).
 // Releases ship roughly every two months.
-const debian_SUPPORTED_VERSIONS = {
+const nvfortran_debian_SUPPORTED_VERSIONS = {
     [Arch.X64]: [
         "26.3",
         "26.1",
@@ -94739,8 +94877,8 @@ async function installLegacyNcurses(target) {
         await lib_exec.exec("sudo", ["dpkg", "-i", dest]);
     }
 }
-async function debian_installDebian(target) {
-    const version = resolveVersion(target, debian_SUPPORTED_VERSIONS);
+async function nvfortran_debian_installDebian(target) {
+    const version = resolveVersion(target, nvfortran_debian_SUPPORTED_VERSIONS);
     const aptArch = APT_ARCH[target.arch];
     const nvArch = NV_ARCH[target.arch];
     lib_core.info(`Installing nvfortran ${version} on Linux (${target.arch})...`);
@@ -94801,11 +94939,11 @@ async function debian_installDebian(target) {
     const libDir = `${installDir}/compilers/lib`;
     const existingLdPath = process.env.LD_LIBRARY_PATH ?? "";
     lib_core.exportVariable("LD_LIBRARY_PATH", existingLdPath ? `${libDir}:${existingLdPath}` : libDir);
-    const resolvedVersion = await debian_resolveInstalledVersion();
+    const resolvedVersion = await nvfortran_debian_resolveInstalledVersion();
     lib_core.info(`nvfortran ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
 }
-async function debian_resolveInstalledVersion() {
+async function nvfortran_debian_resolveInstalledVersion() {
     let output = "";
     await lib_exec.exec("nvfortran", ["--version"], {
         listeners: {
@@ -94824,7 +94962,7 @@ async function installNVFortran(target) {
     if (target.os !== OS.Linux) {
         throw new Error(`NVFortran is only supported on Linux (got: ${target.os})`);
     }
-    return await debian_installDebian(target);
+    return await nvfortran_debian_installDebian(target);
 }
 
 ;// CONCATENATED MODULE: ./src/installers/aocc/debian.ts
@@ -95370,7 +95508,7 @@ async function setupMsvcLibs(arch) {
         .join(";");
     lib_core.exportVariable("LIB", existing ? `${libDirs};${existing}` : libDirs);
 }
-async function win32_installWin32(target) {
+async function flang_win32_installWin32(target) {
     switch (target.windowsEnv) {
         case WindowsEnv.Native:
             return await win32_installNative(target);
@@ -95478,7 +95616,7 @@ async function installFlang(target) {
         case OS.MacOS:
             return await darwin_installDarwin(target);
         case OS.Windows:
-            return await win32_installWin32(target);
+            return await flang_win32_installWin32(target);
     }
 }
 

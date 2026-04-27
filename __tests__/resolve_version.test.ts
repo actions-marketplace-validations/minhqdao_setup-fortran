@@ -89,13 +89,13 @@ describe("resolveVersion", () => {
       const target: Target = {
         ...baseTarget,
         compiler: Compiler.IFX,
-        version: "2024.0",
+        version: "2024.0.0",
       };
       const supported: Record<string, readonly string[]> = {
         [Arch.X64]: ["2024.1", "2023.2"],
       };
       expect(() => resolveVersion(target, supported)).toThrow(
-        "ifx 2024.0 is not supported on linux (x64). Supported versions: 2024.1, 2023.2",
+        "ifx 2024.0.0 is not supported on linux (x64). Supported versions: 2024.1, 2023.2",
       );
     });
   });
