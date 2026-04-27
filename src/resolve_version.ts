@@ -114,12 +114,7 @@ export async function resolveLatestPatch(
 
   const response = await fetch(
     `https://api.github.com/repos/${repo}/releases?per_page=100`,
-    {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN ?? ""}`,
-      },
-    },
+    { headers: githubHeaders() },
   );
 
   if (!response.ok) {
@@ -166,12 +161,7 @@ export async function verifyAssetExists(
 
   const response = await fetch(
     `https://api.github.com/repos/${repo}/releases/tags/${tag}`,
-    {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN ?? ""}`,
-      },
-    },
+    { headers: githubHeaders() },
   );
 
   if (response.status === 404) {
@@ -194,4 +184,13 @@ export async function verifyAssetExists(
         `See https://github.com/${repo}/releases/tag/${tag} for available assets.`,
     );
   }
+}
+
+function githubHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+  };
+  const token = process.env.GITHUB_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
 }

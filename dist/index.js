@@ -90524,12 +90524,7 @@ function parseMajorOrPatch(input) {
 // llvm/llvm-project. For other repos, tags are matched by prefix "{major}.".
 async function resolveLatestPatch(repo, major, tagPrefix = `llvmorg-${major}.`, tagStripper = (tag) => tag.replace("llvmorg-", "")) {
     lib_core.info(`Resolving latest patch version for ${repo} major ${major} via GitHub API...`);
-    const response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=100`, {
-        headers: {
-            Accept: "application/vnd.github+json",
-            Authorization: `Bearer ${process.env.GITHUB_TOKEN ?? ""}`,
-        },
-    });
+    const response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=100`, { headers: githubHeaders() });
     if (!response.ok) {
         throw new Error(`GitHub API request failed: ${response.status.toString()} ${response.statusText}`);
     }
@@ -90551,12 +90546,7 @@ async function resolveLatestPatch(repo, major, tagPrefix = `llvmorg-${major}.`, 
 async function verifyAssetExists(repo, patch, filename, tagFromPatch = (p) => `llvmorg-${p}`) {
     const tag = tagFromPatch(patch);
     lib_core.info(`Verifying that ${filename} exists for ${repo} release ${tag}...`);
-    const response = await fetch(`https://api.github.com/repos/${repo}/releases/tags/${tag}`, {
-        headers: {
-            Accept: "application/vnd.github+json",
-            Authorization: `Bearer ${process.env.GITHUB_TOKEN ?? ""}`,
-        },
-    });
+    const response = await fetch(`https://api.github.com/repos/${repo}/releases/tags/${tag}`, { headers: githubHeaders() });
     if (response.status === 404) {
         throw new Error(`Requested version "${patch}" does not exist (no release for ${tag} in ${repo}).`);
     }
@@ -90568,6 +90558,15 @@ async function verifyAssetExists(repo, patch, filename, tagFromPatch = (p) => `l
         throw new Error(`Release ${tag} in ${repo} exists but has no asset "${filename}". ` +
             `See https://github.com/${repo}/releases/tag/${tag} for available assets.`);
     }
+}
+function githubHeaders() {
+    const headers = {
+        Accept: "application/vnd.github+json",
+    };
+    const token = process.env.GITHUB_TOKEN;
+    if (token)
+        headers.Authorization = `Bearer ${token}`;
+    return headers;
 }
 
 ;// CONCATENATED MODULE: ./src/installers/gfortran/debian.ts

@@ -85,6 +85,8 @@ jobs:
         with:
           compiler: ${{ matrix.toolchain.compiler }}
           version: ${{ matrix.toolchain.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify installed version
         run: "echo \"Output: ${{ steps.setup.outputs.compiler-version }}\""
