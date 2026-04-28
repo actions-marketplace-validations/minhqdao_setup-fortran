@@ -90465,7 +90465,7 @@ function resolveVersion(target, supportedVersions, { matchMajorIfPatch = false }
         throw new Error(`No supported versions found for ${target.compiler} on ` +
             `${target.os} (${target.arch}).`);
     }
-    // If the version is LATEST, use the first version (should be the highest).
+    // If the version is LATEST, use the first list entry.
     const version = target.version === LATEST ? versions[0] : target.version;
     if (!version) {
         throw new Error(`No supported versions found for ${target.compiler} on ` +
@@ -94711,13 +94711,19 @@ var cache = __nccwpck_require__(5116);
 // Only LATEST is supported via winget — specific versions require offline
 // installers with per-version URLs, which will be added in a follow-up.
 const ifx_win32_SUPPORTED_VERSIONS = {
-    [Arch.X64]: [LATEST],
-    [Arch.ARM64]: undefined,
+    [Arch.X64]: {
+        [WindowsEnv.Native]: [LATEST],
+        [WindowsEnv.UCRT64]: undefined,
+    },
+    [Arch.ARM64]: {
+        [WindowsEnv.Native]: undefined,
+        [WindowsEnv.UCRT64]: undefined,
+    },
 };
 const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
 const SETVARS_BAT = `${ONEAPI_ROOT}\\setvars.bat`;
 async function win32_installWin32(target) {
-    const version = resolveVersion(target, ifx_win32_SUPPORTED_VERSIONS);
+    const version = resolveWindowsVersion(target, ifx_win32_SUPPORTED_VERSIONS);
     lib_core.info(`Installing ifx (${version}) on Windows (${target.arch})...`);
     const cacheKey = `ifx-winget-${target.arch}-${version}`;
     const cachePaths = [ONEAPI_ROOT];

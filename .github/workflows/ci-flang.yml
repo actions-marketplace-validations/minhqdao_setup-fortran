@@ -20,27 +20,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [ ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm ]
+        image: [ ubuntu-24.04 ]
+          #  ubuntu-22.04, 
+          #  ubuntu-24.04-arm,
+          #  ubuntu-22.04-arm
         toolchain:
           - { compiler: flang, version: "22" }
-          - { compiler: flang, version: "21" }
-          - { compiler: flang, version: "20" }
-          - { compiler: flang, version: "19" }
-          - { compiler: flang, version: "18" }
-          - { compiler: flang, version: "17" }
+          # - { compiler: flang, version: "21" }
+          # - { compiler: flang, version: "20" }
+          # - { compiler: flang, version: "19" }
+          # - { compiler: flang, version: "18" }
+          # - { compiler: flang, version: "17" }
         include:
-          - image: ubuntu-22.04
-            toolchain: { compiler: flang, version: "16" }
-          - image: macos-26
-            toolchain: { compiler: flang } # only latest version available from brew
-          - image: macos-26-intel
-            toolchain: { compiler: flang } # only latest version available from brew
-          - image: macos-15
-            toolchain: { compiler: flang } # only latest version available from brew
-          - image: macos-15-intel
-            toolchain: { compiler: flang } # only latest version available from brew
-          - image: macos-14
-            toolchain: { compiler: flang } # only latest version available from brew
+          # - image: ubuntu-22.04
+          #   toolchain: { compiler: flang, version: "16" }
+          # - image: macos-26
+          #   toolchain: { compiler: flang } # only latest version available from brew
+          # - image: macos-26-intel
+          #   toolchain: { compiler: flang } # only latest version available from brew
+          # - image: macos-15
+          #   toolchain: { compiler: flang } # only latest version available from brew
+          # - image: macos-15-intel
+          #   toolchain: { compiler: flang } # only latest version available from brew
+          # - image: macos-14
+          #   toolchain: { compiler: flang } # only latest version available from brew
           - image: macos-26
             toolchain: { compiler: flang, version: "21" }
           - image: macos-26

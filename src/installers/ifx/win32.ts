@@ -1,21 +1,30 @@
 import * as cache from "@actions/cache";
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
-import { Arch, LATEST, type Target } from "../../types";
-import { resolveVersion } from "../../resolve_version";
+import { Arch, LATEST, WindowsEnv, type Target } from "../../types";
+import { resolveWindowsVersion } from "../../resolve_version";
 
 // Only LATEST is supported via winget — specific versions require offline
 // installers with per-version URLs, which will be added in a follow-up.
 const SUPPORTED_VERSIONS = {
-  [Arch.X64]: [LATEST] as const,
-  [Arch.ARM64]: undefined,
-} as const satisfies Record<Arch, readonly string[] | undefined>;
+  [Arch.X64]: {
+    [WindowsEnv.Native]: [LATEST],
+    [WindowsEnv.UCRT64]: undefined,
+  },
+  [Arch.ARM64]: {
+    [WindowsEnv.Native]: undefined,
+    [WindowsEnv.UCRT64]: undefined,
+  },
+} as const satisfies Record<
+  Arch,
+  Record<WindowsEnv, readonly string[] | undefined>
+>;
 
 const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
 const SETVARS_BAT = `${ONEAPI_ROOT}\\setvars.bat`;
 
 export async function installWin32(target: Target): Promise<string> {
-  const version = resolveVersion(target, SUPPORTED_VERSIONS);
+  const version = resolveWindowsVersion(target, SUPPORTED_VERSIONS);
 
   core.info(`Installing ifx (${version}) on Windows (${target.arch})...`);
 
