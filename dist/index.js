@@ -94748,8 +94748,9 @@ async function installChoco(version) {
     if (version !== LATEST) {
         chocoArgs.push("--version", version);
     }
-    await lib_exec.exec("choco", [...chocoArgs, "intel-oneapi-base-toolkit"]);
-    await lib_exec.exec("choco", [...chocoArgs, "intel-oneapi-hpc-toolkit"]);
+    // Update these IDs in your installChoco function
+    await lib_exec.exec("choco", [...chocoArgs, "oneapi-base-toolkit"]);
+    await lib_exec.exec("choco", [...chocoArgs, "oneapi-hpc-toolkit"]);
     lib_core.info("Initializing Intel environment variables...");
     await setupIntelEnv();
     return await ifx_win32_resolveInstalledVersion();

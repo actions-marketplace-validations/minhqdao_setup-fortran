@@ -43,8 +43,9 @@ async function installChoco(version: string): Promise<string> {
     chocoArgs.push("--version", version);
   }
 
-  await exec.exec("choco", [...chocoArgs, "intel-oneapi-base-toolkit"]);
-  await exec.exec("choco", [...chocoArgs, "intel-oneapi-hpc-toolkit"]);
+  // Update these IDs in your installChoco function
+  await exec.exec("choco", [...chocoArgs, "oneapi-base-toolkit"]);
+  await exec.exec("choco", [...chocoArgs, "oneapi-hpc-toolkit"]);
 
   core.info("Initializing Intel environment variables...");
   await setupIntelEnv();
