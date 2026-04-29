@@ -244,18 +244,10 @@ async function installMSYS2(target: Target): Promise<string> {
 
   core.addPath(msysBin);
 
-  const ompModDir = path.join(
-    "C:\\msys64",
-    target.windowsEnv,
-    "lib",
-    "flang",
-    "modules",
-  );
-  const existingFflags = process.env.FFLAGS ?? "";
-  core.exportVariable(
-    "FFLAGS",
-    existingFflags ? `${existingFflags} -J ${ompModDir}` : `-J ${ompModDir}`,
-  );
+  await exec.exec("C:\\msys64\\usr\\bin\\bash.exe", [
+    "-lc",
+    "find /ucrt64 -name 'omp_lib.mod' 2>/dev/null",
+  ]);
 
   core.exportVariable("FC", flangExe);
   core.exportVariable("CC", clangExe);

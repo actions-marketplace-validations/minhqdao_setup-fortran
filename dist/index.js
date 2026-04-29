@@ -95681,9 +95681,10 @@ async function win32_installMSYS2(target) {
     const clangExe = external_path_.join(msysBin, "clang.exe");
     const clangPPExe = external_path_.join(msysBin, "clang++.exe");
     lib_core.addPath(msysBin);
-    const ompModDir = external_path_.join("C:\\msys64", target.windowsEnv, "lib", "flang", "modules");
-    const existingFflags = process.env.FFLAGS ?? "";
-    lib_core.exportVariable("FFLAGS", existingFflags ? `${existingFflags} -J ${ompModDir}` : `-J ${ompModDir}`);
+    await lib_exec.exec("C:\\msys64\\usr\\bin\\bash.exe", [
+        "-lc",
+        "find /ucrt64 -name 'omp_lib.mod' 2>/dev/null",
+    ]);
     lib_core.exportVariable("FC", flangExe);
     lib_core.exportVariable("CC", clangExe);
     lib_core.exportVariable("CXX", clangPPExe);
