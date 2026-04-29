@@ -18,10 +18,7 @@ async function run(): Promise<void> {
     const compiler = (process.env.FORTRAN_COMPILER ?? "") as Compiler;
     const rawVersion = process.env.FORTRAN_COMPILER_VERSION ?? "0";
     const isUCRT64 = process.env.WINDOWS_ENV === WindowsEnv.UCRT64;
-    // DEBUG:
-    core.info(
-      `DEBUG: Detected compiler: ${compiler} ${rawVersion} (UCRT64: ${isUCRT64.toString()}, WINDOWS_ENV: ${process.env.WINDOWS_ENV ?? "undefined"}, image: ${process.env.ImageOS ?? "undefined"})`,
-    );
+
     const isDarwin = process.platform === "darwin";
     const isLatest = rawVersion === LATEST;
     const majorVersion = isLatest ? Infinity : parseInt(rawVersion, 10);
@@ -88,7 +85,8 @@ async function run(): Promise<void> {
     await execTest("c_interop_test", ["c_interop_test.F90"]);
 
     const shouldSkipPoly =
-      isFlang && ((!isLatest && majorVersion < 19) || isUCRT64);
+      isFlang &&
+      (majorVersion < 19 || (isUCRT64 && process.env.ImageOS === "win22"));
 
     // Polymorphic types (CLASS) were not implemented in flang until LLVM 19. Currently broken on UCRT64.
     if (!shouldSkipPoly) {

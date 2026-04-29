@@ -95657,7 +95657,6 @@ async function win32_installNative(target) {
     lib_core.exportVariable("CXX", clangPPExe);
     lib_core.exportVariable("FORTRAN_COMPILER", "flang");
     lib_core.exportVariable("FORTRAN_COMPILER_VERSION", major);
-    lib_core.exportVariable("WINDOWS_ENV", target.windowsEnv);
     // Add flang's own lib dir to LIB for Fortran runtime libs, then add MSVC
     // and Windows SDK dirs so lld-link can find the CRT (libcmt, oldnames, etc.)
     const flangLibDir = external_path_.join(toolRoot, "lib");
@@ -95688,6 +95687,7 @@ async function win32_installMSYS2(target) {
     lib_core.exportVariable("FORTRAN_COMPILER", "flang");
     // MSYS2 rolling release has no meaningful version to export; use LATEST.
     lib_core.exportVariable("FORTRAN_COMPILER_VERSION", LATEST);
+    lib_core.exportVariable("WINDOWS_ENV", target.windowsEnv);
     const resolvedVersion = await flang_win32_resolveInstalledVersion(flangExe);
     lib_core.info(`Flang ${resolvedVersion} installed successfully via MSYS2.`);
     return resolvedVersion;
