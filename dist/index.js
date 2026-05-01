@@ -95019,7 +95019,7 @@ async function ifort_debian_installDebian(target) {
         const key = line.substring(0, eqIdx);
         const val = line.substring(eqIdx + 1);
         // Only export oneAPI/Intel/PATH-related variables.
-        if (/^(PATH|LD_LIBRARY_PATH|LIBRARY_PATH|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
+        if (/^(PATH|LD_LIBRARY_PATH|LIBRARY_PATH|CPATH|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
             lib_core.exportVariable(key, val);
         }
     }

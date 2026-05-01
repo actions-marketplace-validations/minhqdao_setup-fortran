@@ -93,7 +93,7 @@ export async function installDebian(target: Target): Promise<string> {
     const val = line.substring(eqIdx + 1);
     // Only export oneAPI/Intel/PATH-related variables.
     if (
-      /^(PATH|LD_LIBRARY_PATH|LIBRARY_PATH|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(
+      /^(PATH|LD_LIBRARY_PATH|LIBRARY_PATH|CPATH|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(
         key,
       )
     ) {
