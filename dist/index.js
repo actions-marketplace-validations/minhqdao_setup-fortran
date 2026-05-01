@@ -95054,28 +95054,24 @@ async function ifort_debian_resolveInstalledVersion() {
 // known releases, but if you hit a 403, the GUID in the URL needs updating.
 const IFORT_RELEASES = [
     {
+        version: "2023.2.1",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1720594b-b12c-4aca-b7fb-a7d317bac5cb/w_fortran-compiler_p_2023.2.1.7_offline.dmg",
+    },
+    {
         version: "2023.2.0",
-        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b0f5cd3e-4dce-4122-aa59-dcfb87b74f32/m_HPCKit_p_2023.2.0.49443_offline.dmg",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/438527fc-7140-422c-a851-389f2791816b/w_HPCKit_p_2023.2.0.49441_offline.dmg",
     },
     {
         version: "2023.1.0",
-        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1fba0fc3-1090-4886-8b01-5221972b9a7c/m_HPCKit_p_2023.1.0.46346_offline.dmg",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/2a13d966-fcc5-4a66-9fcc-50603820e0c9/w_HPCKit_p_2023.1.0.46357_offline.dmg",
     },
     {
         version: "2022.3.0",
-        url: "https://registrationcenter-download.intel.com/akdlm/irc_nas/18861/m_HPCKit_p_2022.3.0.8751_offline.dmg",
+        url: "https://registrationcenter-download.intel.com/akdlm/irc_nas/18857/w_HPCKit_p_2022.3.0.9564_offline.dmg",
     },
     {
         version: "2022.2.0",
-        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18683/m_HPCKit_p_2022.2.0.158_offline.dmg",
-    },
-    {
-        version: "2022.1.0",
-        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18485/m_HPCKit_p_2022.1.0.84_offline.dmg",
-    },
-    {
-        version: "2021.4.0",
-        url: "https://registrationcenter-download.intel.com/akdlm/irc_nas/18233/m_HPCKit_p_2021.4.0.3385_offline.dmg",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18680/w_HPCKit_p_2022.2.0.173_offline.dmg",
     },
 ];
 const ifort_darwin_SUPPORTED_VERSIONS = {

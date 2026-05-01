@@ -39,6 +39,10 @@ jobs:
           # - { compiler: ifort, version: "2021.1.1" }
         include:
           - image: macos-26-intel
+            toolchain: { compiler: ifort, version: "2023.2.1" }
+          - image: macos-15-intel
+            toolchain: { compiler: ifort, version: "2023.2.1" }
+          - image: macos-26-intel
             toolchain: { compiler: ifort, version: "2023.2.0" }
           - image: macos-15-intel
             toolchain: { compiler: ifort, version: "2023.2.0" }
@@ -54,14 +58,6 @@ jobs:
             toolchain: { compiler: ifort, version: "2022.2.0" }
           - image: macos-15-intel
             toolchain: { compiler: ifort, version: "2022.2.0" }
-          - image: macos-26-intel
-            toolchain: { compiler: ifort, version: "2022.1.0" }
-          - image: macos-15-intel
-            toolchain: { compiler: ifort, version: "2022.1.0" }
-          - image: macos-26-intel
-            toolchain: { compiler: ifort, version: "2021.4.0" }
-          - image: macos-15-intel
-            toolchain: { compiler: ifort, version: "2021.4.0" }
           # - image:windows-2025
           #   toolchain: { compiler: ifort, version: "2023.2.1" }
           # - image: windows-2022
