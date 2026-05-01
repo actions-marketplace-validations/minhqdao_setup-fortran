@@ -26,7 +26,7 @@ const IFX_RELEASES = [
   },
   {
     version: "2025.3.1",
-    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/79e069e4-f844-43df-8d73-3674c024b043/intel-fortran-compiler-2025.3.1.15_offline.exe",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/36f868e9-84b3-4b4f-90ef-ca84092cae6a/intel-oneapi-hpc-toolkit-2025.3.1.54_offline.exe",
   },
   {
     version: "2025.3.0",
