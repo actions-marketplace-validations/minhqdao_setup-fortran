@@ -199,6 +199,7 @@ async function resolveInstalledVersion(): Promise<string> {
 
   let output = "";
   await exec.exec("ifx", [versionCommand], {
+    ignoreReturnCode: true,
     listeners: {
       stdout: (data: Buffer) => {
         output += data.toString();

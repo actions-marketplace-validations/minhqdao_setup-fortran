@@ -1,118 +1,118 @@
 name: ifx
 
 on:
-    push:
-        branches: [ main ]
-    pull_request:
+  push:
+    branches: [ main ]
+  pull_request:
 
 jobs:
-    build:
-        name: ci
-        uses: ./.github/workflows/ci.yml
+  build:
+    name: ci
+    uses: ./.github/workflows/ci.yml
 
-    integration-tests:
-        name: ${{ matrix.toolchain.version }} ${{ matrix.image }} ${{
-            matrix.toolchain.windowsEnv }}
-        runs-on: ${{ matrix.image }}
-        needs: [ build ]
-        strategy:
-            fail-fast: false
-            matrix:
-                image: [ ubuntu-24.04, ubuntu-22.04 ]
-                toolchain:
-                    - { compiler: ifx, version: "2026.0" }
-                    # - { compiler: ifx, version: "2025.3" }
-                    # - { compiler: ifx, version: "2025.2" }
-                    # - { compiler: ifx, version: "2025.1" }
-                    # - { compiler: ifx, version: "2025.0" }
-                    # - { compiler: ifx, version: "2024.2" }
-                    # - { compiler: ifx, version: "2024.1" }
-                    # - { compiler: ifx, version: "2024.0" }
-                    # - { compiler: ifx, version: "2023.2.4" }
-                    # - { compiler: ifx, version: "2023.2.3" }
-                    # - { compiler: ifx, version: "2023.2.2" }
-                    # - { compiler: ifx, version: "2023.2.1" }
-                    # - { compiler: ifx, version: "2023.2.0" }
-                    # - { compiler: ifx, version: "2023.1.0" }
-                    # - { compiler: ifx, version: "2023.0.0" }
-                    # - { compiler: ifx, version: "2022.2.1" }
-                    # - { compiler: ifx, version: "2022.2.0" }
-                    # - { compiler: ifx, version: "2022.1.0" }
-                    # - { compiler: ifx, version: "2022.0.2" }
-                    # - { compiler: ifx, version: "2022.0.1" }
-                    # - { compiler: ifx, version: "2021.4.0" }
-                    # - { compiler: ifx, version: "2021.3.0" }
-                    # - { compiler: ifx, version: "2021.2.0" }
-                    # - { compiler: ifx, version: "2021.1.2" }
-                    # - { compiler: ifx, version: "2021.1.1" }
-                include:
-                    # - image: "windows-2025"
-                    #   toolchain: { compiler: ifx, version: "2026.0.0" }
-                    # - image: "windows-2022"
-                    #   toolchain: { compiler: ifx, version: "2026.0.0" }
-                    # - image: "windows-2025"
-                    #   toolchain: { compiler: ifx, version: "2025.3.3" }
-                    # - image: "windows-2022"
-                    #   toolchain: { compiler: ifx, version: "2025.3.3" }
-                    # - image: "windows-2025"
-                    #   toolchain: { compiler: ifx, version: "2025.3.2" }
-                    # - image: "windows-2022"
-                    #   toolchain: { compiler: ifx, version: "2025.3.2" }
-                    # - image: "windows-2025"
-                    #   toolchain: { compiler: ifx, version: "2025.3.1" }
-                    # - image: "windows-2022"
-                    #   toolchain: { compiler: ifx, version: "2025.3.1" }
-                    # - image: "windows-2025"
-                    #   toolchain: { compiler: ifx, version: "2025.3.0" }
-                    # - image: "windows-2022"
-                    #   toolchain: { compiler: ifx, version: "2025.3.0" }
-                    - image: "windows-2025"
-                      toolchain: { compiler: ifx, version: "2025.2.1" }
-                    - image: "windows-2022"
-                      toolchain: { compiler: ifx, version: "2025.2.1" }
-                    - image: "windows-2025"
-                      toolchain: { compiler: ifx, version: "2025.2.0" }
-                    - image: "windows-2022"
-                      toolchain: { compiler: ifx, version: "2025.2.0" }
-                    - image: "windows-2025"
-                      toolchain: { compiler: ifx, version: "2025.1.0" }
-                    - image: "windows-2022"
-                      toolchain: { compiler: ifx, version: "2025.1.0" }
-                    - image: "windows-2025"
-                      toolchain: { compiler: ifx, version: "2025.0.4" }
-                    - image: "windows-2022"
-                      toolchain: { compiler: ifx, version: "2025.0.4" }
-                    - image: "windows-2025"
-                      toolchain: { compiler: ifx, version: "2025.0.3" }
-                    - image: "windows-2022"
-                      toolchain: { compiler: ifx, version: "2025.0.3" }
-                    - image: "windows-2025"
-                      toolchain: { compiler: ifx, version: "2025.0.1" }
-                    - image: "windows-2022"
-                      toolchain: { compiler: ifx, version: "2025.0.1" }
-                    - image: "windows-2025"
-                      toolchain: { compiler: ifx, version: "2025.0.0" }
-                    - image: "windows-2022"
-                      toolchain: { compiler: ifx, version: "2025.0.0" }
+  integration-tests:
+    name: ${{ matrix.toolchain.version }} ${{ matrix.image }} ${{
+      matrix.toolchain.windowsEnv }}
+    runs-on: ${{ matrix.image }}
+    needs: [ build ]
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [ ubuntu-24.04, ubuntu-22.04 ]
+        toolchain:
+          - { compiler: ifx, version: "2026.0" }
+          # - { compiler: ifx, version: "2025.3" }
+          # - { compiler: ifx, version: "2025.2" }
+          # - { compiler: ifx, version: "2025.1" }
+          # - { compiler: ifx, version: "2025.0" }
+          # - { compiler: ifx, version: "2024.2" }
+          # - { compiler: ifx, version: "2024.1" }
+          # - { compiler: ifx, version: "2024.0" }
+          # - { compiler: ifx, version: "2023.2.4" }
+          # - { compiler: ifx, version: "2023.2.3" }
+          # - { compiler: ifx, version: "2023.2.2" }
+          # - { compiler: ifx, version: "2023.2.1" }
+          # - { compiler: ifx, version: "2023.2.0" }
+          # - { compiler: ifx, version: "2023.1.0" }
+          # - { compiler: ifx, version: "2023.0.0" }
+          # - { compiler: ifx, version: "2022.2.1" }
+          # - { compiler: ifx, version: "2022.2.0" }
+          # - { compiler: ifx, version: "2022.1.0" }
+          # - { compiler: ifx, version: "2022.0.2" }
+          # - { compiler: ifx, version: "2022.0.1" }
+          # - { compiler: ifx, version: "2021.4.0" }
+          # - { compiler: ifx, version: "2021.3.0" }
+          # - { compiler: ifx, version: "2021.2.0" }
+          # - { compiler: ifx, version: "2021.1.2" }
+          # - { compiler: ifx, version: "2021.1.1" }
+        include:
+          # - image: "windows-2025"
+          #   toolchain: { compiler: ifx, version: "2026.0.0" }
+          # - image: "windows-2022"
+          #   toolchain: { compiler: ifx, version: "2026.0.0" }
+          # - image: "windows-2025"
+          #   toolchain: { compiler: ifx, version: "2025.3.3" }
+          # - image: "windows-2022"
+          #   toolchain: { compiler: ifx, version: "2025.3.3" }
+          # - image: "windows-2025"
+          #   toolchain: { compiler: ifx, version: "2025.3.2" }
+          # - image: "windows-2022"
+          #   toolchain: { compiler: ifx, version: "2025.3.2" }
+          # - image: "windows-2025"
+          #   toolchain: { compiler: ifx, version: "2025.3.1" }
+          # - image: "windows-2022"
+          #   toolchain: { compiler: ifx, version: "2025.3.1" }
+          # - image: "windows-2025"
+          #   toolchain: { compiler: ifx, version: "2025.3.0" }
+          - image: "windows-2022"
+            toolchain: { compiler: ifx, version: "2025.3.0" }
+          - image: "windows-2025"
+            toolchain: { compiler: ifx, version: "2025.2.1" }
+          - image: "windows-2022"
+            toolchain: { compiler: ifx, version: "2025.2.1" }
+          - image: "windows-2025"
+            toolchain: { compiler: ifx, version: "2025.2.0" }
+          - image: "windows-2022"
+            toolchain: { compiler: ifx, version: "2025.2.0" }
+          - image: "windows-2025"
+            toolchain: { compiler: ifx, version: "2025.1.0" }
+          - image: "windows-2022"
+            toolchain: { compiler: ifx, version: "2025.1.0" }
+          - image: "windows-2025"
+            toolchain: { compiler: ifx, version: "2025.0.4" }
+          - image: "windows-2022"
+            toolchain: { compiler: ifx, version: "2025.0.4" }
+          - image: "windows-2025"
+            toolchain: { compiler: ifx, version: "2025.0.3" }
+          - image: "windows-2022"
+            toolchain: { compiler: ifx, version: "2025.0.3" }
+          - image: "windows-2025"
+            toolchain: { compiler: ifx, version: "2025.0.1" }
+          - image: "windows-2022"
+            toolchain: { compiler: ifx, version: "2025.0.1" }
+          - image: "windows-2025"
+            toolchain: { compiler: ifx, version: "2025.0.0" }
+          - image: "windows-2022"
+            toolchain: { compiler: ifx, version: "2025.0.0" }
 
-        steps:
-            - uses: actions/checkout@v6
+    steps:
+      - uses: actions/checkout@v6
 
-            - name: Restore dist-tests
-              uses: actions/download-artifact@v8
-              with:
-                  name: generated-dist-tests
-                  path: dist-tests
+      - name: Restore dist-tests
+        uses: actions/download-artifact@v8
+        with:
+          name: generated-dist-tests
+          path: dist-tests
 
-            - name: Install ${{ matrix.toolchain.compiler }} ${{ matrix.toolchain.version }}
-              id: setup
-              uses: ./
-              with:
-                  compiler: ${{ matrix.toolchain.compiler }}
-                  version: ${{ matrix.toolchain.version }}
+      - name: Install ${{ matrix.toolchain.compiler }} ${{ matrix.toolchain.version }}
+        id: setup
+        uses: ./
+        with:
+          compiler: ${{ matrix.toolchain.compiler }}
+          version: ${{ matrix.toolchain.version }}
 
-            - name: Verify installed version
-              run: "echo \"Output: ${{ steps.setup.outputs.compiler-version }}\""
+      - name: Verify installed version
+        run: "echo \"Output: ${{ steps.setup.outputs.compiler-version }}\""
 
-            - name: Run Integration Tests
-              run: npm run integration-test
+      - name: Run Integration Tests
+        run: npm run integration-test

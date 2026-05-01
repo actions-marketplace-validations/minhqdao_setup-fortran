@@ -94883,6 +94883,7 @@ async function ifx_win32_resolveInstalledVersion() {
     const versionCommand = process.platform === OS.Windows ? "/what" : "--version";
     let output = "";
     await lib_exec.exec("ifx", [versionCommand], {
+        ignoreReturnCode: true,
         listeners: {
             stdout: (data) => {
                 output += data.toString();
