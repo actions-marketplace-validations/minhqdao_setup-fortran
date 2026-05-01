@@ -90251,6 +90251,18 @@ module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"5.
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__nccwpck_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__nccwpck_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/create fake namespace object */
 /******/ 	(() => {
 /******/ 		var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
@@ -90632,6 +90644,7 @@ async function resolveInstalledVersion() {
 
 // EXTERNAL MODULE: external "path"
 var external_path_ = __nccwpck_require__(16928);
+var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
 ;// CONCATENATED MODULE: ./src/installers/gfortran/darwin.ts
 
 
@@ -94724,6 +94737,7 @@ var cache = __nccwpck_require__(5116);
 
 
 
+
 // Only versions with a known installer URL are listed. LATEST resolves to the
 // first entry. ARM64 is not supported: Intel oneAPI does not provide Windows
 // ARM64 packages.
@@ -94817,7 +94831,7 @@ async function win32_installWin32(target) {
     }
     else {
         lib_core.info(`Downloading installer...`);
-        const installerPath = await downloadTool(installerUrl);
+        const installerPath = await downloadTool(installerUrl, external_path_default().join(process.env.RUNNER_TEMP ?? "C:\\Temp", `ifx-${version}.exe`));
         lib_core.info("Running silent install...");
         await lib_exec.exec(`"${installerPath}"`, [
             "-s",

@@ -4,6 +4,7 @@ import * as cache from "@actions/cache";
 import * as tc from "@actions/tool-cache";
 import { Arch, type Target } from "../../types";
 import { resolveVersion } from "../../resolve_version";
+import path from "path";
 
 // Only versions with a known installer URL are listed. LATEST resolves to the
 // first entry. ARM64 is not supported: Intel oneAPI does not provide Windows
@@ -128,7 +129,10 @@ export async function installWin32(target: Target): Promise<string> {
     core.info(`Restored ifx installation from cache (${cacheHit}).`);
   } else {
     core.info(`Downloading installer...`);
-    const installerPath = await tc.downloadTool(installerUrl);
+    const installerPath = await tc.downloadTool(
+      installerUrl,
+      path.join(process.env.RUNNER_TEMP ?? "C:\\Temp", `ifx-${version}.exe`),
+    );
 
     core.info("Running silent install...");
     await exec.exec(`"${installerPath}"`, [
