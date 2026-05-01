@@ -20,23 +20,19 @@ jobs:
       matrix:
         image: [ ubuntu-24.04, ubuntu-22.04 ]
         toolchain:
-          - { compiler: ifort, version: "2023.2.4" }
-          # - { compiler: ifort, version: "2023.2.3" }
-          # - { compiler: ifort, version: "2023.2.2" }
-          # - { compiler: ifort, version: "2023.2.1" }
-          # - { compiler: ifort, version: "2023.2.0" }
-          # - { compiler: ifort, version: "2023.1.0" }
-          # - { compiler: ifort, version: "2023.0.0" }
-          # - { compiler: ifort, version: "2022.2.1" }
-          # - { compiler: ifort, version: "2022.2.0" }
-          # - { compiler: ifort, version: "2022.1.0" }
-          # - { compiler: ifort, version: "2022.0.2" }
-          # - { compiler: ifort, version: "2022.0.1" }
-          # - { compiler: ifort, version: "2021.4.0" }
-          # - { compiler: ifort, version: "2021.3.0" }
-          # - { compiler: ifort, version: "2021.2.0" }
-          # - { compiler: ifort, version: "2021.1.2" }
-          # - { compiler: ifort, version: "2021.1.1" }
+          - { compiler: ifort, version: "2021.13" }
+          - { compiler: ifort, version: "2021.12" }
+          - { compiler: ifort, version: "2021.11" }
+          - { compiler: ifort, version: "2021.10" }
+          - { compiler: ifort, version: "2021.9" }
+          - { compiler: ifort, version: "2021.8" }
+          - { compiler: ifort, version: "2021.7" }
+          - { compiler: ifort, version: "2021.6" }
+          - { compiler: ifort, version: "2021.5" }
+          - { compiler: ifort, version: "2021.4" }
+          - { compiler: ifort, version: "2021.3" }
+          - { compiler: ifort, version: "2021.2" }
+          - { compiler: ifort, version: "2021.1" }
         include:
           # - image: macos-26-intel
           #   toolchain: { compiler: ifort, version: "2021.10" }
@@ -62,10 +58,6 @@ jobs:
           #   toolchain: { compiler: ifort, version: "2021.5" }
           # - image: macos-15-intel
           #   toolchain: { compiler: ifort, version: "2021.5" }
-          - image: macos-26-intel
-            toolchain: { compiler: ifort, version: "2021.4" }
-          - image: macos-15-intel
-            toolchain: { compiler: ifort, version: "2021.4" }
           # - image: macos-26-intel
           #   toolchain: { compiler: ifort, version: "2021.3" }
           # - image: macos-15-intel

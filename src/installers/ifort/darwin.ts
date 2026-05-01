@@ -27,7 +27,7 @@ const IFORT_RELEASES = [
   },
   {
     version: "2021.7",
-    url: "https://registrationcenter-download.intel.com/akdlm/irc_nas/18861/m_HPCKit_p_2022.3.0.8751_offline.dmg",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18733/m_fortran-compiler_p_2022.1.1.84_offline.dmg",
   },
   {
     version: "2021.6",
@@ -36,10 +36,6 @@ const IFORT_RELEASES = [
   {
     version: "2021.5",
     url: "https://registrationcenter-download.intel.com/akdlm/irc_nas/18341/m_HPCKit_p_2022.1.0.86.dmg",
-  },
-  {
-    version: "2021.4",
-    url: "https://registrationcenter-download.intel.com/akdlm/irc_nas/18233/m_HPCKit_p_2021.4.0.3385_offline.dmg",
   },
   {
     version: "2021.3",
