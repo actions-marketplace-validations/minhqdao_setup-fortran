@@ -1,0 +1,118 @@
+import * as core from "@actions/core";
+import * as exec from "@actions/exec";
+import { Arch, type Target } from "../../types";
+import { resolveVersion } from "../../resolve_version";
+
+// ifort (Intel Fortran Compiler Classic) was officially removed from oneAPI
+// starting with the 2024.0 release. 2023.2.4 is the maximum possible version.
+// ARM64 is not supported: Intel oneAPI does not provide Linux ARM64 packages.
+const SUPPORTED_VERSIONS = {
+  [Arch.X64]: [
+    "2023.2.4",
+    "2023.2.3",
+    "2023.2.2",
+    "2023.2.1",
+    "2023.2.0",
+    "2023.1.0",
+    "2023.0.0",
+    "2022.2.1",
+    "2022.2.0",
+    "2022.1.0",
+    "2022.0.2",
+    "2022.0.1",
+    "2021.4.0",
+    "2021.3.0",
+    "2021.2.0",
+    "2021.1.2",
+    "2021.1.1",
+  ],
+  [Arch.ARM64]: undefined,
+} as const satisfies Record<Arch, readonly string[] | undefined>;
+
+export async function installDebian(target: Target): Promise<string> {
+  const version = resolveVersion(target, SUPPORTED_VERSIONS);
+
+  core.info(`Installing ifort ${version} on Linux (${target.arch})...`);
+
+  core.info("Adding Intel oneAPI apt repository...");
+  await exec.exec("bash", [
+    "-c",
+    [
+      `wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB`,
+      `| gpg --dearmor`,
+      `| sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null`,
+    ].join(" "),
+  ]);
+  await exec.exec("bash", [
+    "-c",
+    `echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list`,
+  ]);
+
+  await exec.exec("sudo", ["apt-get", "update", "-y"]);
+
+  // The versioned package names follow the intel-oneapi-compiler-<component>-<version> scheme.
+  // Because ifort only exists in <=2023, the C++ package is always the classic variant.
+  const fortranPkg = `intel-oneapi-compiler-fortran-${version}`;
+  const cppPkg = `intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-${version}`;
+
+  core.info(`Installing apt packages ${fortranPkg} and ${cppPkg}...`);
+  await exec.exec("sudo", [
+    "apt-get",
+    "install",
+    "-y",
+    "--no-install-recommends",
+    fortranPkg,
+    cppPkg,
+  ]);
+
+  const setVarsScript = "/opt/intel/oneapi/setvars.sh";
+  core.info(`Sourcing ${setVarsScript} and exporting environment...`);
+
+  let envOutput = "";
+  await exec.exec("bash", ["-c", `source "${setVarsScript}" --force && env`], {
+    listeners: {
+      stdout: (data: Buffer) => {
+        envOutput += data.toString();
+      },
+    },
+  });
+
+  for (const line of envOutput.split("\n")) {
+    const eqIdx = line.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = line.substring(0, eqIdx);
+    const val = line.substring(eqIdx + 1);
+    // Only export oneAPI/Intel/PATH-related variables.
+    if (
+      /^(PATH|LD_LIBRARY_PATH|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(
+        key,
+      )
+    ) {
+      core.exportVariable(key, val);
+    }
+  }
+
+  core.exportVariable("FC", "ifort");
+  core.exportVariable("CC", "icc");
+  core.exportVariable("CXX", "icpc");
+  core.exportVariable("FORTRAN_COMPILER", "ifort");
+  core.exportVariable("FORTRAN_COMPILER_VERSION", version);
+
+  const resolvedVersion = await resolveInstalledVersion();
+  core.info(`ifort ${resolvedVersion} installed successfully.`);
+  return resolvedVersion;
+}
+
+async function resolveInstalledVersion(): Promise<string> {
+  let output = "";
+  await exec.exec("ifort", ["--version"], {
+    listeners: {
+      stdout: (data: Buffer) => {
+        output += data.toString();
+      },
+    },
+  });
+  // ifort --version often prints a multi-line copyright header.
+  // We grab just the first line which contains the actual version string.
+  return output.trim().split("\n")[0];
+}

@@ -94936,9 +94936,134 @@ async function installIFX(target) {
     }
 }
 
-;// CONCATENATED MODULE: ./src/installers/ifort/index.ts
-async function installIFort(_) {
+;// CONCATENATED MODULE: ./src/installers/ifort/debian.ts
+
+
+
+
+// ifort (Intel Fortran Compiler Classic) was officially removed from oneAPI
+// starting with the 2024.0 release. 2023.2.4 is the maximum possible version.
+// ARM64 is not supported: Intel oneAPI does not provide Linux ARM64 packages.
+const ifort_debian_SUPPORTED_VERSIONS = {
+    [Arch.X64]: [
+        "2023.2.4",
+        "2023.2.3",
+        "2023.2.2",
+        "2023.2.1",
+        "2023.2.0",
+        "2023.1.0",
+        "2023.0.0",
+        "2022.2.1",
+        "2022.2.0",
+        "2022.1.0",
+        "2022.0.2",
+        "2022.0.1",
+        "2021.4.0",
+        "2021.3.0",
+        "2021.2.0",
+        "2021.1.2",
+        "2021.1.1",
+    ],
+    [Arch.ARM64]: undefined,
+};
+async function ifort_debian_installDebian(target) {
+    const version = resolveVersion(target, ifort_debian_SUPPORTED_VERSIONS);
+    lib_core.info(`Installing ifort ${version} on Linux (${target.arch})...`);
+    lib_core.info("Adding Intel oneAPI apt repository...");
+    await lib_exec.exec("bash", [
+        "-c",
+        [
+            `wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB`,
+            `| gpg --dearmor`,
+            `| sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null`,
+        ].join(" "),
+    ]);
+    await lib_exec.exec("bash", [
+        "-c",
+        `echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list`,
+    ]);
+    await lib_exec.exec("sudo", ["apt-get", "update", "-y"]);
+    // The versioned package names follow the intel-oneapi-compiler-<component>-<version> scheme.
+    // Because ifort only exists in <=2023, the C++ package is always the classic variant.
+    const fortranPkg = `intel-oneapi-compiler-fortran-${version}`;
+    const cppPkg = `intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-${version}`;
+    lib_core.info(`Installing apt packages ${fortranPkg} and ${cppPkg}...`);
+    await lib_exec.exec("sudo", [
+        "apt-get",
+        "install",
+        "-y",
+        "--no-install-recommends",
+        fortranPkg,
+        cppPkg,
+    ]);
+    const setVarsScript = "/opt/intel/oneapi/setvars.sh";
+    lib_core.info(`Sourcing ${setVarsScript} and exporting environment...`);
+    let envOutput = "";
+    await lib_exec.exec("bash", ["-c", `source "${setVarsScript}" --force && env`], {
+        listeners: {
+            stdout: (data) => {
+                envOutput += data.toString();
+            },
+        },
+    });
+    for (const line of envOutput.split("\n")) {
+        const eqIdx = line.indexOf("=");
+        if (eqIdx === -1)
+            continue;
+        const key = line.substring(0, eqIdx);
+        const val = line.substring(eqIdx + 1);
+        // Only export oneAPI/Intel/PATH-related variables.
+        if (/^(PATH|LD_LIBRARY_PATH|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
+            lib_core.exportVariable(key, val);
+        }
+    }
+    lib_core.exportVariable("FC", "ifort");
+    lib_core.exportVariable("CC", "icc");
+    lib_core.exportVariable("CXX", "icpc");
+    lib_core.exportVariable("FORTRAN_COMPILER", "ifort");
+    lib_core.exportVariable("FORTRAN_COMPILER_VERSION", version);
+    const resolvedVersion = await ifort_debian_resolveInstalledVersion();
+    lib_core.info(`ifort ${resolvedVersion} installed successfully.`);
+    return resolvedVersion;
+}
+async function ifort_debian_resolveInstalledVersion() {
+    let output = "";
+    await lib_exec.exec("ifort", ["--version"], {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            },
+        },
+    });
+    // ifort --version often prints a multi-line copyright header.
+    // We grab just the first line which contains the actual version string.
+    return output.trim().split("\n")[0];
+}
+
+;// CONCATENATED MODULE: ./src/installers/ifort/darwin.ts
+async function darwin_installDarwin(_) {
     return Promise.reject(new Error("Not implemented"));
+}
+
+;// CONCATENATED MODULE: ./src/installers/ifort/win32.ts
+async function ifort_win32_installWin32(_) {
+    return Promise.reject(new Error("Not implemented"));
+}
+
+;// CONCATENATED MODULE: ./src/installers/ifort/index.ts
+
+
+
+
+async function installIFort(target) {
+    switch (target.os) {
+        case OS.Linux:
+            return await ifort_debian_installDebian(target);
+        case OS.MacOS:
+            return await darwin_installDarwin(target);
+        case OS.Windows:
+            return await ifort_win32_installWin32(target);
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/installers/nvfortran/debian.ts
@@ -95465,7 +95590,7 @@ const MACOS_ASSET_SUFFIX = {
     [Arch.X64]: "macOS-X64",
     [Arch.ARM64]: "macOS-ARM64",
 };
-async function darwin_installDarwin(target) {
+async function flang_darwin_installDarwin(target) {
     const resolved = resolveVersion(target, flang_darwin_SUPPORTED_VERSIONS, {
         matchMajorIfPatch: true,
     });
@@ -95834,7 +95959,7 @@ async function installFlang(target) {
         case OS.Linux:
             return await flang_debian_installDebian(target);
         case OS.MacOS:
-            return await darwin_installDarwin(target);
+            return await flang_darwin_installDarwin(target);
         case OS.Windows:
             return await flang_win32_installWin32(target);
     }
