@@ -94743,34 +94743,99 @@ var cache = __nccwpck_require__(5116);
 // Only versions with a known installer URL are listed. LATEST resolves to the
 // first entry. ARM64 is not supported: Intel oneAPI does not provide Windows
 // ARM64 packages.
-//
-// LATEST will resolve to the first list entry.
+const IFX_RELEASES = [
+    {
+        version: "2026.0.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9af38d13-867b-45af-a950-0b42d9bac1ae/intel-fortran-compiler-2026.0.0.566_offline.exe",
+    },
+    {
+        version: "2025.3.3",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/11a7fdc4-e14d-42b0-a48b-9a4777932c31/intel-fortran-compiler-2025.3.3.16_offline.exe",
+    },
+    {
+        version: "2025.3.2",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/039121f2-d488-4bc1-a5bb-97528e3a4b86/intel-fortran-compiler-2025.3.2.26_offline.exe",
+    },
+    {
+        version: "2025.3.1",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/79e069e4-f844-43df-8d73-3674c024b043/intel-fortran-compiler-2025.3.1.15_offline.exe",
+    },
+    {
+        version: "2025.3.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/cb54db79-1d73-4443-8274-d712fdc2d156/intel-fortran-compiler-2025.3.0.324_offline.exe",
+    },
+    {
+        version: "2025.2.1",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/0dc56e76-d2c0-4bb8-9c83-c2ee3952b855/intel-fortran-compiler-2025.2.1.11_offline.exe",
+    },
+    {
+        version: "2025.2.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/d500a63b-e481-465d-b1a3-64a6981d25f1/intel-fortran-compiler-2025.2.0.535_offline.exe",
+    },
+    {
+        version: "2025.1.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9962ffec-17a2-4135-94e5-acc3995e0c49/intel-fortran-compiler-2025.1.0.602_offline.exe",
+    },
+    {
+        version: "2025.0.4",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1269b58a-590e-49b1-9f53-beebe171ac56/intel-fortran-compiler-2025.0.4.19_offline.exe",
+    },
+    {
+        version: "2025.0.3",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ead426f0-5403-412f-9652-106156965748/intel-fortran-compiler-2025.0.3.11_offline.exe",
+    },
+    {
+        version: "2025.0.1",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/a37c30c3-a846-4371-a85d-603e9a9eb94c/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe",
+    },
+    {
+        version: "2025.0.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/90dfd1ee-cbde-4461-89fc-3d4a4587844c/intel-fortran-compiler-2025.0.0.712_offline.exe",
+    },
+    {
+        version: "2024.2.1",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ea23d696-a77f-4a4a-8996-20d02cdbc48f/w_fortran-compiler_p_2024.2.1.81_offline.exe",
+    },
+    {
+        version: "2024.2.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7feb5647-59dd-420d-8753-345d31e177dc/w_fortran-compiler_p_2024.2.0.424_offline.exe",
+    },
+    {
+        version: "2024.1.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/c95a3b26-fc45-496c-833b-df08b10297b9/w_HPCKit_p_2024.1.0.561_offline.exe",
+    },
+    {
+        version: "2024.0.2",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/3a64aab4-3c35-40ba-bc9c-f80f136a8005/w_fortran-compiler_p_2024.0.2.27_offline.exe",
+    },
+    {
+        version: "2024.0.1",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7a6db8a1-a8b9-4043-8e8e-ca54b56c34e4/w_HPCKit_p_2024.0.1.35_offline.exe",
+    },
+    {
+        version: "2023.2.1",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1720594b-b12c-4aca-b7fb-a7d317bac5cb/w_fortran-compiler_p_2023.2.1.7_offline.exe",
+    },
+    {
+        version: "2023.2.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/438527fc-7140-422c-a851-389f2791816b/w_HPCKit_p_2023.2.0.49441_offline.exe",
+    },
+    {
+        version: "2023.1.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/2a13d966-fcc5-4a66-9fcc-50603820e0c9/w_HPCKit_p_2023.1.0.46357_offline.exe",
+    },
+    {
+        version: "2022.3.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/irc_nas/18857/w_HPCKit_p_2022.3.0.9564_offline.exe",
+    },
+    {
+        version: "2022.2.0",
+        url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18680/w_HPCKit_p_2022.2.0.173_offline.exe",
+    },
+];
 const ifx_win32_SUPPORTED_VERSIONS = {
     [Arch.X64]: {
-        [WindowsEnv.Native]: [
-            "2026.0.0",
-            "2025.3.3",
-            "2025.3.2",
-            "2025.3.1",
-            "2025.3.0",
-            "2025.2.1",
-            "2025.2.0",
-            "2025.1.0",
-            "2025.0.4",
-            "2025.0.3",
-            "2025.0.1",
-            "2025.0.0",
-            "2024.2.1",
-            "2024.2.0",
-            "2024.1.0",
-            "2024.0.2",
-            "2024.0.1",
-            "2023.2.1",
-            "2023.2.0",
-            "2023.1.0",
-            "2022.3.0",
-            "2022.2.0",
-        ],
+        [WindowsEnv.Native]: IFX_RELEASES.map((r) => r.version),
         [WindowsEnv.UCRT64]: undefined,
     },
     [Arch.ARM64]: {
@@ -94778,54 +94843,12 @@ const ifx_win32_SUPPORTED_VERSIONS = {
         [WindowsEnv.UCRT64]: undefined,
     },
 };
-// Maps each full patch version to its Windows offline installer URL.
-// URLs contain opaque UUIDs and cannot be derived programmatically —
-// they must be maintained manually. The latest patch for each YYYY.MINOR
-// base is listed first; earlier patches are kept for reference.
-//
-// Sources:
-//   https://www.wingetgui.com/apps/Intel-FortranCompiler
-//   https://github.com/equipez/github_actions_scripts/blob/main/install_oneapi_windows.bat
-const INSTALLER_URLS = {
-    // 2026.0
-    "2026.0.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9af38d13-867b-45af-a950-0b42d9bac1ae/intel-fortran-compiler-2026.0.0.566_offline.exe",
-    // 2025.3
-    "2025.3.3": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/11a7fdc4-e14d-42b0-a48b-9a4777932c31/intel-fortran-compiler-2025.3.3.16_offline.exe",
-    "2025.3.2": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/039121f2-d488-4bc1-a5bb-97528e3a4b86/intel-fortran-compiler-2025.3.2.26_offline.exe",
-    "2025.3.1": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/79e069e4-f844-43df-8d73-3674c024b043/intel-fortran-compiler-2025.3.1.15_offline.exe",
-    "2025.3.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/cb54db79-1d73-4443-8274-d712fdc2d156/intel-fortran-compiler-2025.3.0.324_offline.exe",
-    // 2025.2
-    "2025.2.1": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/0dc56e76-d2c0-4bb8-9c83-c2ee3952b855/intel-fortran-compiler-2025.2.1.11_offline.exe",
-    "2025.2.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/d500a63b-e481-465d-b1a3-64a6981d25f1/intel-fortran-compiler-2025.2.0.535_offline.exe",
-    // 2025.1
-    "2025.1.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9962ffec-17a2-4135-94e5-acc3995e0c49/intel-fortran-compiler-2025.1.0.602_offline.exe",
-    // 2025.0
-    "2025.0.4": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1269b58a-590e-49b1-9f53-beebe171ac56/intel-fortran-compiler-2025.0.4.19_offline.exe",
-    "2025.0.3": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ead426f0-5403-412f-9652-106156965748/intel-fortran-compiler-2025.0.3.11_offline.exe",
-    "2025.0.1": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/a37c30c3-a846-4371-a85d-603e9a9eb94c/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe",
-    "2025.0.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/90dfd1ee-cbde-4461-89fc-3d4a4587844c/intel-fortran-compiler-2025.0.0.712_offline.exe",
-    // 2024.2
-    "2024.2.1": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ea23d696-a77f-4a4a-8996-20d02cdbc48f/w_fortran-compiler_p_2024.2.1.81_offline.exe",
-    "2024.2.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7feb5647-59dd-420d-8753-345d31e177dc/w_fortran-compiler_p_2024.2.0.424_offline.exe",
-    // 2024.1
-    "2024.1.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/c95a3b26-fc45-496c-833b-df08b10297b9/w_HPCKit_p_2024.1.0.561_offline.exe",
-    // 2024.0
-    "2024.0.2": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/3a64aab4-3c35-40ba-bc9c-f80f136a8005/w_fortran-compiler_p_2024.0.2.27_offline.exe",
-    "2024.0.1": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7a6db8a1-a8b9-4043-8e8e-ca54b56c34e4/w_HPCKit_p_2024.0.1.35_offline.exe",
-    // 2023
-    "2023.2.1": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1720594b-b12c-4aca-b7fb-a7d317bac5cb/w_fortran-compiler_p_2023.2.1.7_offline.exe",
-    "2023.2.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/438527fc-7140-422c-a851-389f2791816b/w_HPCKit_p_2023.2.0.49441_offline.exe",
-    "2023.1.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/2a13d966-fcc5-4a66-9fcc-50603820e0c9/w_HPCKit_p_2023.1.0.46357_offline.exe",
-    // 2022
-    "2022.3.0": "https://registrationcenter-download.intel.com/akdlm/irc_nas/18857/w_HPCKit_p_2022.3.0.9564_offline.exe",
-    "2022.2.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18680/w_HPCKit_p_2022.2.0.173_offline.exe",
-};
 const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
 const SETVARS_BAT = `${ONEAPI_ROOT}\\setvars.bat`;
 async function win32_installWin32(target) {
     const version = resolveWindowsVersion(target, ifx_win32_SUPPORTED_VERSIONS);
-    const installerUrl = INSTALLER_URLS[version];
-    if (!installerUrl) {
+    const release = IFX_RELEASES.find((r) => r.version === version);
+    if (!release) {
         throw new Error(`No installer URL found for ifx ${version} on Windows. ` +
             `This is a bug — please open an issue.`);
     }
@@ -94838,7 +94861,7 @@ async function win32_installWin32(target) {
     }
     else {
         lib_core.info(`Downloading installer...`);
-        const installerPath = await downloadTool(installerUrl, external_path_default().join(process.env.RUNNER_TEMP ?? "C:\\Temp", `ifx-${version}.exe`));
+        const installerPath = await downloadTool(release.url, external_path_default().join(process.env.RUNNER_TEMP ?? "C:\\Temp", `ifx-${version}.exe`));
         lib_core.info("Running silent install...");
         await lib_exec.exec(`"${installerPath}"`, [
             "-s",
