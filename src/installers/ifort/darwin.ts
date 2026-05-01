@@ -27,7 +27,7 @@ const IFORT_RELEASES = [
   },
   {
     version: "2021.7",
-    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18733/m_fortran-compiler_p_2022.1.1.84_offline.dmg",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18922/m_fortran-compiler_p_2022.2.0.8682_offline.dmg",
   },
   {
     version: "2021.6",
