@@ -32,12 +32,10 @@ async function run(): Promise<void> {
 
     core.info(`Starting integration tests for ${fc} in ${buildDir}...`);
 
-    // Module output flag varies by compiler family.
     const flags: string[] = ["-O2"];
     if (compiler === Compiler.IFX || compiler === Compiler.IFort) {
-      flags.push("-module", "test_build");
+      flags.push("-module:test_build");
     } else {
-      // gfortran, aocc, flang, nvfortran all use -J
       flags.push("-J", "test_build");
     }
 
