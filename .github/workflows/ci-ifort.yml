@@ -46,10 +46,6 @@ jobs:
           #   toolchain: { compiler: ifort, version: "2021.8" }
           # - image: macos-15-intel
           #   toolchain: { compiler: ifort, version: "2021.8" }
-          - image: macos-26-intel
-            toolchain: { compiler: ifort, version: "2021.7" }
-          - image: macos-15-intel
-            toolchain: { compiler: ifort, version: "2021.7" }
           # - image: macos-26-intel
           #   toolchain: { compiler: ifort, version: "2021.6" }
           # - image: macos-15-intel
@@ -70,42 +66,50 @@ jobs:
           #   toolchain: { compiler: ifort, version: "2021.1" }
           # - image: macos-15-intel
           #   toolchain: { compiler: ifort, version: "2021.1" }
+          # - image: windows-2025
+          #   toolchain: { compiler: ifort, version: "2021.13" }
+          # - image: windows-2022
+          #   toolchain: { compiler: ifort, version: "2021.13" }
+          # - image: windows-2025
+          #   toolchain: { compiler: ifort, version: "2021.12" }
+          # - image: windows-2022
+          #   toolchain: { compiler: ifort, version: "2021.12" }
+          # - image: windows-2025
+          #   toolchain: { compiler: ifort, version: "2021.11" }
+          # - image: windows-2022
+          #   toolchain: { compiler: ifort, version: "2021.11" }
+          # - image: windows-2025
+          #   toolchain: { compiler: ifort, version: "2021.10" }
+          # - image: windows-2022
+          #   toolchain: { compiler: ifort, version: "2021.10" }
+          # - image: windows-2025
+          #   toolchain: { compiler: ifort, version: "2021.9" }
+          # - image: windows-2022
+          #   toolchain: { compiler: ifort, version: "2021.9" }
+          # - image: windows-2025
+          #   toolchain: { compiler: ifort, version: "2021.7" }
+          # - image: windows-2022
+          #   toolchain: { compiler: ifort, version: "2021.7" }
+          # - image: windows-2025
+          #   toolchain: { compiler: ifort, version: "2021.6" }
+          # - image: windows-2022
+          #   toolchain: { compiler: ifort, version: "2021.6" }
           - image: windows-2025
-            toolchain: { compiler: ifort, version: "2021.13" }
+            toolchain: { compiler: ifort, version: "2021.5" }
           - image: windows-2022
-            toolchain: { compiler: ifort, version: "2021.13" }
+            toolchain: { compiler: ifort, version: "2021.5" }
           - image: windows-2025
-            toolchain: { compiler: ifort, version: "2021.12" }
+            toolchain: { compiler: ifort, version: "2021.3" }
           - image: windows-2022
-            toolchain: { compiler: ifort, version: "2021.12" }
+            toolchain: { compiler: ifort, version: "2021.3" }
           - image: windows-2025
-            toolchain: { compiler: ifort, version: "2021.11" }
+            toolchain: { compiler: ifort, version: "2021.2" }
           - image: windows-2022
-            toolchain: { compiler: ifort, version: "2021.11" }
+            toolchain: { compiler: ifort, version: "2021.2" }
           - image: windows-2025
-            toolchain: { compiler: ifort, version: "2021.10" }
+            toolchain: { compiler: ifort, version: "2021.1" }
           - image: windows-2022
-            toolchain: { compiler: ifort, version: "2021.10" }
-          - image: windows-2025
-            toolchain: { compiler: ifort, version: "2021.9" }
-          - image: windows-2022
-            toolchain: { compiler: ifort, version: "2021.9" }
-          - image: windows-2025
-            toolchain: { compiler: ifort, version: "2021.8" }
-          - image: windows-2022
-            toolchain: { compiler: ifort, version: "2021.8" }
-          - image: windows-2025
-            toolchain: { compiler: ifort, version: "2021.8" }
-          - image: windows-2022
-            toolchain: { compiler: ifort, version: "2021.8" }
-          - image: windows-2025
-            toolchain: { compiler: ifort, version: "2021.7" }
-          - image: windows-2022
-            toolchain: { compiler: ifort, version: "2021.7" }
-          - image: windows-2025
-            toolchain: { compiler: ifort, version: "2021.6" }
-          - image: windows-2022
-            toolchain: { compiler: ifort, version: "2021.6" }
+            toolchain: { compiler: ifort, version: "2021.1" }
 
     steps:
       - uses: actions/checkout@v6
