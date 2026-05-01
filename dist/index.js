@@ -94770,12 +94770,6 @@ const ifx_win32_SUPPORTED_VERSIONS = {
             "2023.1.0",
             "2022.3.0",
             "2022.2.0",
-            "2021.11.0",
-            "2021.4.0",
-            "2021.3.0",
-            "2020.4.0",
-            "2020.3.0",
-            "2020.2.0",
         ],
         [WindowsEnv.UCRT64]: undefined,
     },
@@ -94825,14 +94819,6 @@ const INSTALLER_URLS = {
     // 2022
     "2022.3.0": "https://registrationcenter-download.intel.com/akdlm/irc_nas/18857/w_HPCKit_p_2022.3.0.9564_offline.exe",
     "2022.2.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18680/w_HPCKit_p_2022.2.0.173_offline.exe",
-    // 2021
-    "2021.11.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533_offline.exe",
-    "2021.4.0": "https://registrationcenter-download.intel.com/akdlm/irc_nas/18236/l_BaseKit_p_2021.4.0.3422_offline.exe",
-    "2021.3.0": "https://registrationcenter-download.intel.com/akdlm/irc_nas/17662/l_openvino_toolkit_p_2021.3.394_offline.exe",
-    // 2020
-    "2020.4.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/tec/16917/l_mkl_2020.4.304_offline.exe",
-    "2020.3.0": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/tec/16903/l_mkl_2020.3.279_offline.exe",
-    "2020.2.0": "https://registrationcenter-download.intel.com/akdlm/irc_nas/18478/l_dpcpp-cpp-compiler_p_2022.0.2.84_offline.exe",
 };
 const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
 const SETVARS_BAT = `${ONEAPI_ROOT}\\setvars.bat`;
@@ -95178,68 +95164,73 @@ async function installNVFortran(target) {
 
 
 
-// Make sure the versions are always in descending order. The first one will be
-// used as the default if no version was specified by the user.
+// Make sure that the "latest" version is listed first. If the user does not
+// specify a version, the latest will be installed by default.
+const AOCC_RELEASES = [
+    {
+        version: "5.1",
+        sha256: "42f9ed0713a8fe269d5a5b40b1992a5380ff59b4441e58d38eb9f27df5bfe6df",
+    },
+    {
+        version: "5.0",
+        sha256: "b937b3f19f59ac901a2c3466a80988e0545d53827900eaa5b3c1ad0cd9fdf0c8",
+    },
+    {
+        version: "4.2",
+        sha256: "4c259e959fecd6408157681f81407f3c43572cfd9ad6353ccec570cf7f732db3",
+    },
+    {
+        version: "4.1",
+        sha256: "013ecc70ba7d6a2fb434dc686def95b7f87a41a091cecebc890a5fd68ad83a3e",
+    },
+];
 const aocc_debian_SUPPORTED_VERSIONS = {
-    [Arch.X64]: ["5.1", "5.0", "4.2", "4.1"],
+    [Arch.X64]: AOCC_RELEASES.map((r) => r.version),
     [Arch.ARM64]: undefined,
 };
-const AOCC_RELEASES = {
-    "5.1": {
-        deb: "aocc-compiler-5.1.0_1_amd64.deb",
-        url: "https://download.amd.com/developer/eula/aocc/aocc-5-1/aocc-compiler-5.1.0_1_amd64.deb",
-        sha256: "42f9ed0713a8fe269d5a5b40b1992a5380ff59b4441e58d38eb9f27df5bfe6df",
-        installDir: "/opt/AMD/aocc-compiler-5.1.0",
-    },
-    "5.0": {
-        deb: "aocc-compiler-5.0.0_1_amd64.deb",
-        url: "https://download.amd.com/developer/eula/aocc/aocc-5-0/aocc-compiler-5.0.0_1_amd64.deb",
-        sha256: "b937b3f19f59ac901a2c3466a80988e0545d53827900eaa5b3c1ad0cd9fdf0c8",
-        installDir: "/opt/AMD/aocc-compiler-5.0.0",
-    },
-    "4.2": {
-        deb: "aocc-compiler-4.2.0_1_amd64.deb",
-        url: "https://download.amd.com/developer/eula/aocc/aocc-4-2/aocc-compiler-4.2.0_1_amd64.deb",
-        sha256: "4c259e959fecd6408157681f81407f3c43572cfd9ad6353ccec570cf7f732db3",
-        installDir: "/opt/AMD/aocc-compiler-4.2.0",
-    },
-    "4.1": {
-        deb: "aocc-compiler-4.1.0_1_amd64.deb",
-        url: "https://download.amd.com/developer/eula/aocc/aocc-4-1/aocc-compiler-4.1.0_1_amd64.deb",
-        sha256: "013ecc70ba7d6a2fb434dc686def95b7f87a41a091cecebc890a5fd68ad83a3e",
-        installDir: "/opt/AMD/aocc-compiler-4.1.0",
-    },
-};
+function getReleaseMetadata(version) {
+    const release = AOCC_RELEASES.find((r) => r.version === version);
+    if (!release) {
+        throw new Error(`AOCC version ${version} is not defined in AOCC_RELEASES.`);
+    }
+    const fullVersion = `${version}.0`; // e.g., "5.1" -> "5.1.0"
+    const urlVersion = version.replace(".", "-"); // e.g., "5.1" -> "5-1"
+    const deb = `aocc-compiler-${fullVersion}_1_amd64.deb`;
+    return {
+        deb,
+        sha256: release.sha256,
+        url: `https://download.amd.com/developer/eula/aocc/aocc-${urlVersion}/${deb}`,
+        installDir: `/opt/AMD/aocc-compiler-${fullVersion}`,
+    };
+}
 async function aocc_debian_installDebian(target) {
     const version = resolveVersion(target, aocc_debian_SUPPORTED_VERSIONS);
-    const release = AOCC_RELEASES[version];
+    const metadata = getReleaseMetadata(version);
     lib_core.info(`Installing AOCC ${version} on Linux (${target.arch})...`);
-    if (!external_fs_.existsSync(release.installDir)) {
-        const debPath = external_path_.join(external_os_.tmpdir(), release.deb);
-        lib_core.info(`Downloading AOCC ${version} from ${release.url}...`);
+    if (!external_fs_.existsSync(metadata.installDir)) {
+        const debPath = external_path_.join(external_os_.tmpdir(), metadata.deb);
+        lib_core.info(`Downloading AOCC ${version} from ${metadata.url}...`);
         await lib_exec.exec("curl", [
             "-fSL",
             "--user-agent",
             "Mozilla/5.0",
             "-o",
             debPath,
-            release.url,
+            metadata.url,
         ]);
         lib_core.info(`Verifying checksum...`);
         await lib_exec.exec("bash", [
             "-c",
-            `echo "${release.sha256}  ${debPath}" | sha256sum -c -`,
+            `echo "${metadata.sha256}  ${debPath}" | sha256sum -c -`,
         ]);
         lib_core.info(`Installing AOCC ${version}...`);
         await lib_exec.exec("sudo", ["dpkg", "-i", debPath]);
-        await lib_exec.exec("sudo", ["apt-get", "install", "-f", "-y"]); // fix any missing deps
+        await lib_exec.exec("sudo", ["apt-get", "install", "-f", "-y"]);
     }
     else {
-        lib_core.info(`AOCC ${version} already installed at ${release.installDir}, skipping download.`);
+        lib_core.info(`AOCC ${version} already installed at ${metadata.installDir}, skipping download.`);
     }
-    // Source setenv_AOCC.sh and propagate the variables it sets to GITHUB_ENV
-    // so subsequent steps can use the AOCC environment.
-    const setenvScript = external_path_.join(release.installDir, "setenv_AOCC.sh");
+    const setenvScript = external_path_.join(metadata.installDir, "setenv_AOCC.sh");
     lib_core.info(`Sourcing ${setenvScript} and exporting environment...`);
     let envOutput = "";
     await lib_exec.exec("bash", ["-c", `source "${setenvScript}" && env`], {
@@ -95255,19 +95246,15 @@ async function aocc_debian_installDebian(target) {
             continue;
         const key = line.substring(0, eqIdx);
         const val = line.substring(eqIdx + 1);
-        // Only export AOCC/AMD/PATH-related variables
         if (/^(PATH|LD_LIBRARY_PATH|.*AOCC.*|.*AMD.*)$/i.test(key)) {
             lib_core.exportVariable(key, val);
         }
     }
-    const binDir = external_path_.join(release.installDir, "bin");
-    lib_core.addPath(binDir);
+    lib_core.addPath(external_path_.join(metadata.installDir, "bin"));
     lib_core.exportVariable("FC", "flang");
     lib_core.exportVariable("CC", "clang");
     lib_core.exportVariable("CXX", "clang++");
-    const resolvedVersion = await aocc_debian_resolveInstalledVersion();
-    lib_core.info(`AOCC flang ${resolvedVersion} installed successfully.`);
-    return resolvedVersion;
+    return await aocc_debian_resolveInstalledVersion();
 }
 async function aocc_debian_resolveInstalledVersion() {
     let output = "";

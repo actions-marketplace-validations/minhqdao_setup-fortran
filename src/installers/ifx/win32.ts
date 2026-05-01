@@ -39,12 +39,6 @@ const SUPPORTED_VERSIONS = {
       "2023.1.0",
       "2022.3.0",
       "2022.2.0",
-      "2021.11.0",
-      "2021.4.0",
-      "2021.3.0",
-      "2020.4.0",
-      "2020.3.0",
-      "2020.2.0",
     ],
     [WindowsEnv.UCRT64]: undefined,
   },
@@ -120,20 +114,6 @@ const INSTALLER_URLS: Record<string, string> = {
     "https://registrationcenter-download.intel.com/akdlm/irc_nas/18857/w_HPCKit_p_2022.3.0.9564_offline.exe",
   "2022.2.0":
     "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18680/w_HPCKit_p_2022.2.0.173_offline.exe",
-  // 2021
-  "2021.11.0":
-    "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b4adec02-353b-4144-aa21-f2087040f316/w_ipp_oneapi_p_2021.11.0.533_offline.exe",
-  "2021.4.0":
-    "https://registrationcenter-download.intel.com/akdlm/irc_nas/18236/l_BaseKit_p_2021.4.0.3422_offline.exe",
-  "2021.3.0":
-    "https://registrationcenter-download.intel.com/akdlm/irc_nas/17662/l_openvino_toolkit_p_2021.3.394_offline.exe",
-  // 2020
-  "2020.4.0":
-    "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/tec/16917/l_mkl_2020.4.304_offline.exe",
-  "2020.3.0":
-    "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/tec/16903/l_mkl_2020.3.279_offline.exe",
-  "2020.2.0":
-    "https://registrationcenter-download.intel.com/akdlm/irc_nas/18478/l_dpcpp-cpp-compiler_p_2022.0.2.84_offline.exe",
 };
 
 const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
