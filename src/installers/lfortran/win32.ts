@@ -66,9 +66,6 @@ async function installConda(target: Target): Promise<string> {
     `Installing LFortran ${version} on Windows (${target.arch}) via conda-forge...`,
   );
 
-  // NSIS rejects paths containing the ~ character (8.3 short-path notation).
-  // os.tmpdir() on GitHub Actions runners resolves to a path with RUNNER~1,
-  // so we use a fixed root-level path that is guaranteed to be tilde-free.
   const condaPrefix = "C:\\lfortran-conda";
   const miniforgeInstaller = "C:\\miniforge-install.exe";
 
@@ -96,10 +93,12 @@ async function installConda(target: Target): Promise<string> {
     "--solver=classic",
     `lfortran==${version}`,
     "clang",
+    "lld",
   ]);
 
   const envPrefix = path.join(condaPrefix, "envs", "lfortran");
-  const lfortranExe = path.join(envPrefix, "Library", "bin", "lfortran.exe");
+  const libraryBin = path.join(envPrefix, "Library", "bin");
+  const lfortranExe = path.join(libraryBin, "lfortran.exe");
 
   if (!fs.existsSync(lfortranExe)) {
     throw new Error(`lfortran.exe not found at expected path: ${lfortranExe}`);
@@ -107,18 +106,29 @@ async function installConda(target: Target): Promise<string> {
 
   core.addPath(envPrefix);
   core.addPath(path.join(envPrefix, "Scripts"));
-  core.addPath(path.join(envPrefix, "Library", "bin"));
+  core.addPath(libraryBin);
 
-  const lldLink = path.join(envPrefix, "Library", "bin", "lld-link.exe");
+  const lldLink = path.join(libraryBin, "lld-link.exe");
+  const proxyLink = path.join(libraryBin, "link.exe");
+
   if (fs.existsSync(lldLink)) {
-    core.info(`Setting LFORTRAN_LINKER to ${lldLink}`);
-    core.exportVariable("LFORTRAN_LINKER", lldLink);
-  } else {
-    // Fallback to clang if lld-link isn't found for some reason
-    const clangExe = path.join(envPrefix, "Library", "bin", "clang.exe");
-    if (fs.existsSync(clangExe)) {
-      core.exportVariable("LFORTRAN_LINKER", clangExe);
+    if (!fs.existsSync(proxyLink)) {
+      core.info("Creating link.exe proxy for lld-link.exe...");
+      try {
+        // We copy instead of symlink to avoid potential permission issues on Windows
+        fs.copyFileSync(lldLink, proxyLink);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        core.warning(`Could not create link.exe proxy: ${message}`);
+      }
     }
+    // Export the proxy as the preferred linker
+    core.info(`Setting LFORTRAN_LINKER to ${proxyLink}`);
+    core.exportVariable("LFORTRAN_LINKER", proxyLink);
+  } else {
+    core.warning(
+      "lld-link.exe not found; LFortran may fail to link on Windows.",
+    );
   }
 
   core.exportVariable("FC", lfortranExe);

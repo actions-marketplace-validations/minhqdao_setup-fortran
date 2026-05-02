@@ -96503,9 +96503,6 @@ async function lfortran_win32_installWin32(target) {
 async function installConda(target) {
     const version = resolveWindowsVersion(target, lfortran_win32_SUPPORTED_VERSIONS);
     lib_core.info(`Installing LFortran ${version} on Windows (${target.arch}) via conda-forge...`);
-    // NSIS rejects paths containing the ~ character (8.3 short-path notation).
-    // os.tmpdir() on GitHub Actions runners resolves to a path with RUNNER~1,
-    // so we use a fixed root-level path that is guaranteed to be tilde-free.
     const condaPrefix = "C:\\lfortran-conda";
     const miniforgeInstaller = "C:\\miniforge-install.exe";
     const arch = target.arch === Arch.ARM64 ? "arm64" : "x86_64";
@@ -96528,26 +96525,37 @@ async function installConda(target) {
         "--solver=classic",
         `lfortran==${version}`,
         "clang",
+        "lld",
     ]);
     const envPrefix = external_path_.join(condaPrefix, "envs", "lfortran");
-    const lfortranExe = external_path_.join(envPrefix, "Library", "bin", "lfortran.exe");
+    const libraryBin = external_path_.join(envPrefix, "Library", "bin");
+    const lfortranExe = external_path_.join(libraryBin, "lfortran.exe");
     if (!external_fs_.existsSync(lfortranExe)) {
         throw new Error(`lfortran.exe not found at expected path: ${lfortranExe}`);
     }
     lib_core.addPath(envPrefix);
     lib_core.addPath(external_path_.join(envPrefix, "Scripts"));
-    lib_core.addPath(external_path_.join(envPrefix, "Library", "bin"));
-    const lldLink = external_path_.join(envPrefix, "Library", "bin", "lld-link.exe");
+    lib_core.addPath(libraryBin);
+    const lldLink = external_path_.join(libraryBin, "lld-link.exe");
+    const proxyLink = external_path_.join(libraryBin, "link.exe");
     if (external_fs_.existsSync(lldLink)) {
-        lib_core.info(`Setting LFORTRAN_LINKER to ${lldLink}`);
-        lib_core.exportVariable("LFORTRAN_LINKER", lldLink);
+        if (!external_fs_.existsSync(proxyLink)) {
+            lib_core.info("Creating link.exe proxy for lld-link.exe...");
+            try {
+                // We copy instead of symlink to avoid potential permission issues on Windows
+                external_fs_.copyFileSync(lldLink, proxyLink);
+            }
+            catch (e) {
+                const message = e instanceof Error ? e.message : String(e);
+                lib_core.warning(`Could not create link.exe proxy: ${message}`);
+            }
+        }
+        // Export the proxy as the preferred linker
+        lib_core.info(`Setting LFORTRAN_LINKER to ${proxyLink}`);
+        lib_core.exportVariable("LFORTRAN_LINKER", proxyLink);
     }
     else {
-        // Fallback to clang if lld-link isn't found for some reason
-        const clangExe = external_path_.join(envPrefix, "Library", "bin", "clang.exe");
-        if (external_fs_.existsSync(clangExe)) {
-            lib_core.exportVariable("LFORTRAN_LINKER", clangExe);
-        }
+        lib_core.warning("lld-link.exe not found; LFortran may fail to link on Windows.");
     }
     lib_core.exportVariable("FC", lfortranExe);
     lib_core.exportVariable("FORTRAN_COMPILER", "lfortran");
