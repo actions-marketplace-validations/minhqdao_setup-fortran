@@ -96475,6 +96475,17 @@ const lfortran_win32_SUPPORTED_VERSIONS = {
     },
 };
 async function lfortran_win32_installWin32(target) {
+    const gitLink = "C:\\Program Files\\Git\\usr\\bin\\link.exe";
+    if (external_fs_.existsSync(gitLink)) {
+        lib_core.info("Moving conflicting Git link.exe to link.exe.bak...");
+        try {
+            external_fs_.renameSync(gitLink, `${gitLink}.bak`);
+        }
+        catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
+            lib_core.warning(`Could not move Git link.exe: ${message}`);
+        }
+    }
     switch (target.windowsEnv) {
         case WindowsEnv.Native:
             return await installConda(target);
@@ -96526,12 +96537,17 @@ async function installConda(target) {
     lib_core.addPath(envPrefix);
     lib_core.addPath(external_path_.join(envPrefix, "Scripts"));
     lib_core.addPath(external_path_.join(envPrefix, "Library", "bin"));
-    const clangExe = external_path_.join(envPrefix, "Library", "bin", "clang.exe");
-    if (external_fs_.existsSync(clangExe)) {
-        lib_core.exportVariable("LFORTRAN_LINKER", clangExe);
+    const lldLink = external_path_.join(envPrefix, "Library", "bin", "lld-link.exe");
+    if (external_fs_.existsSync(lldLink)) {
+        lib_core.info(`Setting LFORTRAN_LINKER to ${lldLink}`);
+        lib_core.exportVariable("LFORTRAN_LINKER", lldLink);
     }
     else {
-        lib_core.warning(`clang.exe not found in conda environment`);
+        // Fallback to clang if lld-link isn't found for some reason
+        const clangExe = external_path_.join(envPrefix, "Library", "bin", "clang.exe");
+        if (external_fs_.existsSync(clangExe)) {
+            lib_core.exportVariable("LFORTRAN_LINKER", clangExe);
+        }
     }
     lib_core.exportVariable("FC", lfortranExe);
     lib_core.exportVariable("FORTRAN_COMPILER", "lfortran");

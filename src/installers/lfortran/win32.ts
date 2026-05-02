@@ -33,6 +33,17 @@ const SUPPORTED_VERSIONS = {
 >;
 
 export async function installWin32(target: Target): Promise<string> {
+  const gitLink = "C:\\Program Files\\Git\\usr\\bin\\link.exe";
+  if (fs.existsSync(gitLink)) {
+    core.info("Moving conflicting Git link.exe to link.exe.bak...");
+    try {
+      fs.renameSync(gitLink, `${gitLink}.bak`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      core.warning(`Could not move Git link.exe: ${message}`);
+    }
+  }
+
   switch (target.windowsEnv) {
     case WindowsEnv.Native:
       return await installConda(target);
@@ -98,11 +109,16 @@ async function installConda(target: Target): Promise<string> {
   core.addPath(path.join(envPrefix, "Scripts"));
   core.addPath(path.join(envPrefix, "Library", "bin"));
 
-  const clangExe = path.join(envPrefix, "Library", "bin", "clang.exe");
-  if (fs.existsSync(clangExe)) {
-    core.exportVariable("LFORTRAN_LINKER", clangExe);
+  const lldLink = path.join(envPrefix, "Library", "bin", "lld-link.exe");
+  if (fs.existsSync(lldLink)) {
+    core.info(`Setting LFORTRAN_LINKER to ${lldLink}`);
+    core.exportVariable("LFORTRAN_LINKER", lldLink);
   } else {
-    core.warning(`clang.exe not found in conda environment`);
+    // Fallback to clang if lld-link isn't found for some reason
+    const clangExe = path.join(envPrefix, "Library", "bin", "clang.exe");
+    if (fs.existsSync(clangExe)) {
+      core.exportVariable("LFORTRAN_LINKER", clangExe);
+    }
   }
 
   core.exportVariable("FC", lfortranExe);
