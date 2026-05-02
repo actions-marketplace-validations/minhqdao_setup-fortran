@@ -4,10 +4,9 @@ import * as path from "path";
 import * as fs from "fs";
 import { Compiler, LATEST, OS, WindowsEnv } from "./types";
 
-// Per-compiler flag configuration, resolved once at startup.
 interface CompilerFlags {
-  module: string[]; // flags to set the module output directory
-  openmp: string; // flag to enable OpenMP
+  module: string[];
+  openmp: string;
 }
 
 function getCompilerFlags(
@@ -23,10 +22,11 @@ function getCompilerFlags(
       };
     case Compiler.NVFortran:
       return { module: ["-J", "test_build"], openmp: "-mp" };
+    case "lfortran":
+      return { module: ["-J", "test_build"], openmp: "--openmp" };
     case "gfortran":
     case "aocc":
     case "flang":
-    case "lfortran":
       return { module: ["-J", "test_build"], openmp: "-fopenmp" };
   }
 }
