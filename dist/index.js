@@ -96265,11 +96265,10 @@ async function installFlang(target) {
 // Notes:
 //   - lfortran is installed via conda-forge, so the version here is the conda
 //     package version (e.g. "0.63.0").
-//   - Both x64 and ARM64 are supported via conda-forge.
 //   - The binary is always named `lfortran` regardless of the version.
 const lfortran_debian_SUPPORTED_VERSIONS = {
     [Arch.X64]: ["0.63.0", "0.62.0", "0.61.0", "0.60.0", "0.59.0"],
-    [Arch.ARM64]: ["0.63.0", "0.62.0", "0.61.0", "0.60.0", "0.59.0"],
+    [Arch.ARM64]: undefined,
 };
 // Returns the conda arch string for a given runner arch.
 function condaArch(arch) {

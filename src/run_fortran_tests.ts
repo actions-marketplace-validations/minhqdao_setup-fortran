@@ -4,6 +4,43 @@ import * as path from "path";
 import * as fs from "fs";
 import { Compiler, LATEST, OS, WindowsEnv } from "./types";
 
+// Per-compiler flag configuration, resolved once at startup.
+interface CompilerFlags {
+  module: string[]; // flags to set the module output directory
+  openmp: string; // flag to enable OpenMP
+}
+
+function getCompilerFlags(
+  compiler: Compiler,
+  isWindows: boolean,
+): CompilerFlags {
+  switch (compiler) {
+    case Compiler.IFX:
+    case Compiler.IFort:
+      return {
+        module: isWindows ? ["-module:test_build"] : ["-module", "test_build"],
+        openmp: isWindows ? "-Qopenmp" : "-qopenmp",
+      };
+    case Compiler.NVFortran:
+      return { module: ["-J", "test_build"], openmp: "-mp" };
+    case "gfortran":
+    case "aocc":
+    case "flang":
+    case "lfortran":
+      return { module: ["-J", "test_build"], openmp: "-fopenmp" };
+  }
+}
+
+// Returns extra flags needed to compile a file that uses the C preprocessor.
+// Capital-F extensions (.F90) imply preprocessing for gfortran/flang, but
+// lfortran requires an explicit flag; Intel on Windows uses -fpp instead of -cpp.
+function getCppFlags(compiler: Compiler, isWindows: boolean): string[] {
+  if (compiler === Compiler.LFortran) return ["--cpp"];
+  if ((compiler === Compiler.IFX || compiler === Compiler.IFort) && isWindows)
+    return ["-fpp"];
+  return [];
+}
+
 async function run(): Promise<void> {
   const buildDir = path.join(process.cwd(), "test_build");
 
@@ -20,15 +57,13 @@ async function run(): Promise<void> {
     const isUCRT64 = process.env.WINDOWS_ENV === WindowsEnv.UCRT64;
 
     const rawPlatform = process.platform;
-    const isSupportedOS = Object.values(OS).includes(rawPlatform as OS);
-
-    if (!isSupportedOS) {
+    if (!Object.values(OS).includes(rawPlatform as OS)) {
       throw new Error(`Unsupported or missing platform: ${rawPlatform}`);
     }
 
     const platform = rawPlatform as OS;
-    const isDarwin = platform === OS.MacOS;
     const isWindows = platform === OS.Windows;
+    const isDarwin = platform === OS.MacOS;
     const isLatest = rawVersion === LATEST;
     const majorVersion = isLatest ? Infinity : parseInt(rawVersion, 10);
     const isFlang = compiler === Compiler.Flang;
@@ -41,40 +76,25 @@ async function run(): Promise<void> {
 
     core.info(`Starting integration tests for ${fc} in ${buildDir}...`);
 
-    const flags: string[] = ["-O2"];
-    if (compiler === Compiler.IFX || compiler === Compiler.IFort) {
-      if (isWindows) {
-        flags.push("-module:test_build", "-fpp");
-      } else {
-        flags.push("-module", "test_build");
-      }
-    } else {
-      flags.push("-J", "test_build");
-    }
-
-    // OpenMP flag varies by compiler family.
-    let ompFlag = "";
-    if (compiler === Compiler.NVFortran) {
-      ompFlag = "-mp";
-    } else if (compiler === Compiler.IFX || compiler === Compiler.IFort) {
-      ompFlag = isWindows ? "-Qopenmp" : "-qopenmp";
-    } else {
-      ompFlag = "-fopenmp";
-    }
+    const { module: moduleFlags, openmp: ompFlag } = getCompilerFlags(
+      compiler,
+      isWindows,
+    );
+    const cppFlags = getCppFlags(compiler, isWindows);
+    const baseFlags = ["-O2", ...moduleFlags];
 
     const execTest = async (
       name: string,
       sources: string[],
       extraFlags: string[] = [],
     ): Promise<void> => {
-      const binaryName = isWindows ? `${name}.exe` : name;
-      const outputPath = path.join(buildDir, binaryName);
+      const outputPath = path.join(buildDir, isWindows ? `${name}.exe` : name);
       const sourcePaths = sources.map((s) => path.join(testDir, s));
-
       const fflags = (process.env.FFLAGS ?? "").split(" ").filter(Boolean);
+
       core.startGroup(`Test: ${name}`);
       await exec.exec(fc, [
-        ...flags,
+        ...baseFlags,
         ...fflags,
         ...extraFlags,
         ...sourcePaths,
@@ -85,39 +105,45 @@ async function run(): Promise<void> {
       core.endGroup();
     };
 
+    const skipTest = (name: string, reason: string): void => {
+      core.info(`Skipping ${name}: ${reason}`);
+    };
+
+    // iso_fortran_env: requires flang/LLVM 16+
     if (!isFlang || isLatest || majorVersion >= 16) {
       await execTest("iso_fortran_env_test", ["iso_fortran_env_test.f90"]);
     } else {
-      core.info(
-        `Skipping iso_fortran_env_test: not supported by flang ${majorVersion.toString()} (requires LLVM 16+).`,
+      skipTest(
+        "iso_fortran_env_test",
+        `not supported by flang ${majorVersion.toString()} (requires LLVM 16+)`,
       );
     }
 
     await execTest("math_test", ["math_test.f90"]);
-    await execTest("c_interop_test", ["c_interop_test.F90"]);
+    await execTest("c_interop_test", ["c_interop_test.F90"], cppFlags);
 
-    const shouldSkipPoly = isFlang && (majorVersion < 19 || isUCRT64);
-
-    // Polymorphic types (CLASS) were not implemented in flang until LLVM 19. Currently broken on UCRT64.
-    if (!shouldSkipPoly) {
+    const skipPoly = isFlang && (majorVersion < 19 || isUCRT64);
+    // Polymorphic types (CLASS): requires flang/LLVM 19+; currently broken on UCRT64.
+    if (!skipPoly) {
       await execTest("polymorphism_test", [
         "polymorphism_mod_test.f90",
         "polymorphism_test.f90",
       ]);
     } else {
-      core.info(
-        `Skipping polymorphism_test: not supported by flang ${majorVersion.toString()} (requires LLVM 19+).`,
+      skipTest(
+        "polymorphism_test",
+        `not supported by flang ${majorVersion.toString()} (requires LLVM 19+)`,
       );
     }
 
     const isUnsupportedDarwin = isDarwin && majorVersion < 23; // LATEST from brew works, let's check with version 23 if installation from source works, too
-    const shouldSkipOmp = isFlang && (isUnsupportedDarwin || isUCRT64);
-
-    if (ompFlag && !shouldSkipOmp) {
+    const skipOmp = isFlang && (isUnsupportedDarwin || isUCRT64);
+    if (!skipOmp) {
       await execTest("omp_test", ["omp_test.f90"], [ompFlag]);
-    } else if (ompFlag) {
-      core.info(
-        `Skipping omp_test: not supported by flang ${majorVersion.toString()} on ${process.platform}.`,
+    } else {
+      skipTest(
+        "omp_test",
+        `not supported by flang ${majorVersion.toString()} on ${process.platform}`,
       );
     }
 
