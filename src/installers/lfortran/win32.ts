@@ -84,6 +84,7 @@ async function installConda(target: Target): Promise<string> {
     "conda-forge",
     "--solver=classic",
     `lfortran==${version}`,
+    "clang",
   ]);
 
   const envPrefix = path.join(condaPrefix, "envs", "lfortran");
