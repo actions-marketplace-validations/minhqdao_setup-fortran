@@ -14,6 +14,8 @@ function getCompilerFlags(
   compiler: Compiler,
   isWindows: boolean,
 ): CompilerFlags {
+  const lFortranLinker = process.env.LFORTRAN_LINKER;
+
   switch (compiler) {
     case Compiler.IFX:
     case Compiler.IFort:
@@ -31,9 +33,8 @@ function getCompilerFlags(
           "--openmp",
           `--openmp-lib-dir=${process.env.LFORTRAN_OMP_LIB_DIR ?? ""}`,
         ],
-        linkerFlags: isWindows
-          ? [`--linker=${process.env.LFORTRAN_LINKER ?? "link.exe"}`]
-          : [],
+        linkerFlags:
+          isWindows && lFortranLinker ? [`--linker=${lFortranLinker}`] : [],
       };
     case "gfortran":
     case "aocc":

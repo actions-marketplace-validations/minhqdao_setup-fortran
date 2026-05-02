@@ -25,6 +25,7 @@ const SUPPORTED_VERSIONS = {
     "0.59.0",
     "0.58.0",
     "0.57.0",
+    "0.56.0",
   ],
   [Arch.ARM64]: [
     "0.63.0",
@@ -34,6 +35,7 @@ const SUPPORTED_VERSIONS = {
     "0.59.0",
     "0.58.0",
     "0.57.0",
+    "0.56.0",
   ],
 } as const satisfies Record<Arch, readonly string[]>;
 
