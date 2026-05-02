@@ -87,43 +87,22 @@ async function installConda(target: Target): Promise<string> {
   ]);
 
   const envPrefix = path.join(condaPrefix, "envs", "lfortran");
-
-  const candidates = [
-    path.join(envPrefix, "lfortran.exe"),
-    path.join(envPrefix, "Scripts", "lfortran.exe"),
-    path.join(envPrefix, "Library", "bin", "lfortran.exe"),
-    path.join(envPrefix, "bin", "lfortran.exe"),
-  ];
-
-  const lfortranExe = candidates.find(fs.existsSync);
-  if (!lfortranExe) {
-    // List what's actually there to inform the next fix
-    for (const dir of [
-      envPrefix,
-      path.join(envPrefix, "Scripts"),
-      path.join(envPrefix, "Library", "bin"),
-    ]) {
-      if (fs.existsSync(dir)) {
-        core.info(`Contents of ${dir}: ${fs.readdirSync(dir).join(", ")}`);
-      }
-    }
-    throw new Error(
-      `lfortran.exe not found. Checked:\n` +
-        candidates.map((c) => `  ${c}`).join("\n"),
-    );
-  }
-
-  core.info(`Found lfortran binary at: ${lfortranExe}`);
+  const lfortranExe = path.join(envPrefix, "Library", "bin", "lfortran.exe");
 
   if (!fs.existsSync(lfortranExe)) {
     throw new Error(`lfortran.exe not found at expected path: ${lfortranExe}`);
   }
 
-  core.info(`Found lfortran binary at: ${lfortranExe}`);
-
   core.addPath(envPrefix);
   core.addPath(path.join(envPrefix, "Scripts"));
   core.addPath(path.join(envPrefix, "Library", "bin"));
+
+  const clangExe = path.join(envPrefix, "Library", "bin", "clang.exe");
+  if (fs.existsSync(clangExe)) {
+    core.exportVariable("LFORTRAN_LINKER", clangExe);
+  } else {
+    core.warning(`clang.exe not found in conda environment`);
+  }
 
   core.exportVariable("FC", lfortranExe);
   core.exportVariable("FORTRAN_COMPILER", "lfortran");

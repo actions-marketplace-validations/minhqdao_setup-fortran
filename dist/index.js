@@ -96518,35 +96518,20 @@ async function installConda(target) {
         `lfortran==${version}`,
     ]);
     const envPrefix = external_path_.join(condaPrefix, "envs", "lfortran");
-    const candidates = [
-        external_path_.join(envPrefix, "lfortran.exe"),
-        external_path_.join(envPrefix, "Scripts", "lfortran.exe"),
-        external_path_.join(envPrefix, "Library", "bin", "lfortran.exe"),
-        external_path_.join(envPrefix, "bin", "lfortran.exe"),
-    ];
-    const lfortranExe = candidates.find(external_fs_.existsSync);
-    if (!lfortranExe) {
-        // List what's actually there to inform the next fix
-        for (const dir of [
-            envPrefix,
-            external_path_.join(envPrefix, "Scripts"),
-            external_path_.join(envPrefix, "Library", "bin"),
-        ]) {
-            if (external_fs_.existsSync(dir)) {
-                lib_core.info(`Contents of ${dir}: ${external_fs_.readdirSync(dir).join(", ")}`);
-            }
-        }
-        throw new Error(`lfortran.exe not found. Checked:\n` +
-            candidates.map((c) => `  ${c}`).join("\n"));
-    }
-    lib_core.info(`Found lfortran binary at: ${lfortranExe}`);
+    const lfortranExe = external_path_.join(envPrefix, "Library", "bin", "lfortran.exe");
     if (!external_fs_.existsSync(lfortranExe)) {
         throw new Error(`lfortran.exe not found at expected path: ${lfortranExe}`);
     }
-    lib_core.info(`Found lfortran binary at: ${lfortranExe}`);
     lib_core.addPath(envPrefix);
     lib_core.addPath(external_path_.join(envPrefix, "Scripts"));
     lib_core.addPath(external_path_.join(envPrefix, "Library", "bin"));
+    const clangExe = external_path_.join(envPrefix, "Library", "bin", "clang.exe");
+    if (external_fs_.existsSync(clangExe)) {
+        lib_core.exportVariable("LFORTRAN_LINKER", clangExe);
+    }
+    else {
+        lib_core.warning(`clang.exe not found in conda environment`);
+    }
     lib_core.exportVariable("FC", lfortranExe);
     lib_core.exportVariable("FORTRAN_COMPILER", "lfortran");
     lib_core.exportVariable("FORTRAN_COMPILER_VERSION", version);
