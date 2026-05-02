@@ -110,6 +110,7 @@ async function run(): Promise<void> {
       const fflags = (process.env.FFLAGS ?? "").split(" ").filter(Boolean);
 
       core.startGroup(`Test: ${name}`);
+      core.info(`DEBUG: Linker flags: ${linkerFlags.join(" ")}`);
       await exec.exec(fc, [
         ...baseFlags,
         ...fflags,
