@@ -96512,6 +96512,7 @@ async function installConda(target) {
         "channel_priority",
         "strict",
     ]);
+    await lib_exec.exec(condaExe, ["config", "--set", "solver", "classic"]);
     lib_core.info(`Installing lfortran==${version} from conda-forge...`);
     await lib_exec.exec(`"${condaExe}"`, [
         "install",

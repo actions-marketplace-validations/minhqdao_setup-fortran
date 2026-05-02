@@ -67,6 +67,7 @@ jobs:
 
             - name: Write smoke test
               run: |
+                  find /tmp/lfortran-conda -name "libomp*"
                   cat > omp_smoke.f90 << 'EOF'
                   program omp_smoke
                     use omp_lib
