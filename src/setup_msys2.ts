@@ -5,8 +5,11 @@ import { WindowsEnv } from "./types";
 
 const MSYS2_ROOT = "C:\\msys64";
 
-const PKG_PREFIX: Record<string, string> = {
+const PKG_PREFIX: Record<WindowsEnv, string | undefined> = {
   [WindowsEnv.UCRT64]: "mingw-w64-ucrt-x86_64",
+  [WindowsEnv.Clang64]: "mingw-w64-clang-x86_64",
+  [WindowsEnv.ClangArm64]: "mingw-w64-clang-aarch64",
+  [WindowsEnv.Native]: undefined,
 };
 
 export async function setupMSYS2(

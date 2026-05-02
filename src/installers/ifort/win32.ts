@@ -50,10 +50,14 @@ const SUPPORTED_VERSIONS = {
   [Arch.X64]: {
     [WindowsEnv.Native]: IFORT_RELEASES.map((r) => r.version),
     [WindowsEnv.UCRT64]: undefined,
+    [WindowsEnv.Clang64]: undefined,
+    [WindowsEnv.ClangArm64]: undefined,
   },
   [Arch.ARM64]: {
     [WindowsEnv.Native]: undefined,
     [WindowsEnv.UCRT64]: undefined,
+    [WindowsEnv.Clang64]: undefined,
+    [WindowsEnv.ClangArm64]: undefined,
   },
 } satisfies Record<Arch, Record<WindowsEnv, readonly string[] | undefined>>;
 

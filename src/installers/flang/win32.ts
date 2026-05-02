@@ -30,10 +30,14 @@ const SUPPORTED_VERSIONS = {
   [Arch.X64]: {
     [WindowsEnv.Native]: ["22"],
     [WindowsEnv.UCRT64]: [LATEST],
+    [WindowsEnv.Clang64]: [LATEST],
+    [WindowsEnv.ClangArm64]: undefined,
   },
   [Arch.ARM64]: {
     [WindowsEnv.Native]: ["22", "21", "20"],
     [WindowsEnv.UCRT64]: undefined,
+    [WindowsEnv.Clang64]: undefined,
+    [WindowsEnv.ClangArm64]: [LATEST],
   },
 } as const satisfies Record<
   Arch,
@@ -141,7 +145,11 @@ export async function installWin32(target: Target): Promise<string> {
     case WindowsEnv.Native:
       return await installNative(target);
     case WindowsEnv.UCRT64:
+    case WindowsEnv.Clang64:
       return await installMSYS2(target);
+    case WindowsEnv.ClangArm64: {
+      throw new Error('Not implemented yet: "clangarm64" case');
+    }
   }
 }
 
@@ -224,15 +232,10 @@ async function installNative(target: Target): Promise<string> {
 }
 
 async function installMSYS2(target: Target): Promise<string> {
-  // MSYS2 does not support ARM64 — the UCRT64 environment is x64 only.
-  if (target.arch === Arch.ARM64) {
-    throw new Error(
-      `Flang via MSYS2/UCRT64 is not supported on ARM64. ` +
-        `Use windowsEnv: native for ARM64 Windows.`,
-    );
-  }
-
-  core.info(`Installing Flang on Windows (MSYS2/UCRT64, rolling release)...`);
+  const version = resolveWindowsVersion(target, SUPPORTED_VERSIONS);
+  core.info(
+    `Installing Flang ${version} on Windows (MSYS2/UCRT64, rolling release)...`,
+  );
 
   // The MSYS2 package for flang in the UCRT64 environment.
   await setupMSYS2(target.windowsEnv, ["flang"]);

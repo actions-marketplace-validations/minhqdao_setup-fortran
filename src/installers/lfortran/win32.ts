@@ -30,10 +30,14 @@ const SUPPORTED_VERSIONS = {
       "0.57.0",
     ],
     [WindowsEnv.UCRT64]: [LATEST],
+    [WindowsEnv.Clang64]: [LATEST],
+    [WindowsEnv.ClangArm64]: undefined,
   },
   [Arch.ARM64]: {
     [WindowsEnv.Native]: undefined,
     [WindowsEnv.UCRT64]: undefined,
+    [WindowsEnv.Clang64]: undefined,
+    [WindowsEnv.ClangArm64]: [LATEST],
   },
 } as const satisfies Record<
   Arch,
@@ -45,7 +49,9 @@ export async function installWin32(target: Target): Promise<string> {
     case WindowsEnv.Native:
       return await installConda(target);
     case WindowsEnv.UCRT64:
-      return await installMSYS2();
+    case WindowsEnv.Clang64:
+    case WindowsEnv.ClangArm64:
+      return await installMSYS2(target);
   }
 }
 
@@ -153,16 +159,16 @@ async function installConda(target: Target): Promise<string> {
   return resolvedVersion;
 }
 
-// Installs lfortran via MSYS2/UCRT64 (x64 only, rolling release).
-// The binary lives in C:\msys64\ucrt64\bin\lfortran.exe.
-async function installMSYS2(): Promise<string> {
+// Installs lfortran via MSYS2 (rolling release).
+// The binary lives in C:\msys64\<windowsEnv>\bin\lfortran.exe.
+async function installMSYS2(target: Target): Promise<string> {
   core.info(
-    `Installing LFortran on Windows (MSYS2/UCRT64, rolling release)...`,
+    `Installing LFortran on Windows (MSYS2/${target.windowsEnv}, rolling release)...`,
   );
 
-  await setupMSYS2(WindowsEnv.UCRT64, ["lfortran"]);
+  await setupMSYS2(target.windowsEnv, ["lfortran"]);
 
-  const msysBin = path.join("C:\\msys64", WindowsEnv.UCRT64, "bin");
+  const msysBin = path.join("C:\\msys64", target.windowsEnv, "bin");
   const lfortranExe = path.join(msysBin, "lfortran.exe");
 
   core.addPath(msysBin);
@@ -173,13 +179,13 @@ async function installMSYS2(): Promise<string> {
   core.exportVariable("FORTRAN_COMPILER_VERSION", LATEST);
   core.exportVariable(
     "LFORTRAN_OMP_LIB_DIR",
-    path.join("C:\\msys64", WindowsEnv.UCRT64, "lib"),
+    path.join("C:\\msys64", target.windowsEnv, "lib"),
   );
-  core.exportVariable("WINDOWS_ENV", WindowsEnv.UCRT64);
+  core.exportVariable("WINDOWS_ENV", target.windowsEnv);
 
   const resolvedVersion = await resolveInstalledVersion(lfortranExe);
   core.info(
-    `LFortran ${resolvedVersion} installed successfully on Windows (MSYS2/UCRT64).`,
+    `LFortran ${resolvedVersion} installed successfully on Windows (MSYS2/${target.windowsEnv}).`,
   );
   return resolvedVersion;
 }
