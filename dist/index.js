@@ -96277,7 +96277,6 @@ const lfortran_debian_SUPPORTED_VERSIONS = {
         "0.59.0",
         "0.58.0",
         "0.57.0",
-        "0.56.0",
     ],
 };
 // Downloads and installs a self-contained Miniforge installer into a temporary
@@ -96376,7 +96375,6 @@ const lfortran_darwin_SUPPORTED_VERSIONS = {
         "0.59.0",
         "0.58.0",
         "0.57.0",
-        "0.56.0",
     ],
     [Arch.ARM64]: [
         "0.63.0",
@@ -96386,7 +96384,6 @@ const lfortran_darwin_SUPPORTED_VERSIONS = {
         "0.59.0",
         "0.58.0",
         "0.57.0",
-        "0.56.0",
     ],
 };
 // Returns the conda arch string for a given runner arch.
@@ -96501,7 +96498,6 @@ const lfortran_win32_SUPPORTED_VERSIONS = {
             "0.59.0",
             "0.58.0",
             "0.57.0",
-            "0.56.0",
         ],
         [WindowsEnv.UCRT64]: [LATEST],
     },
