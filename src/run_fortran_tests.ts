@@ -7,6 +7,7 @@ import { Compiler, LATEST, OS, WindowsEnv } from "./types";
 interface CompilerFlags {
   module: string[];
   openmp: string[];
+  linkerFlags: string[];
 }
 
 function getCompilerFlags(
@@ -19,9 +20,10 @@ function getCompilerFlags(
       return {
         module: isWindows ? ["-module:test_build"] : ["-module", "test_build"],
         openmp: [isWindows ? "-Qopenmp" : "-qopenmp"],
+        linkerFlags: [],
       };
     case Compiler.NVFortran:
-      return { module: ["-J", "test_build"], openmp: ["-mp"] };
+      return { module: ["-J", "test_build"], openmp: ["-mp"], linkerFlags: [] };
     case Compiler.LFortran:
       return {
         module: ["-J", "test_build"],
@@ -29,11 +31,18 @@ function getCompilerFlags(
           "--openmp",
           `--openmp-lib-dir=${process.env.LFORTRAN_OMP_LIB_DIR ?? ""}`,
         ],
+        linkerFlags: isWindows
+          ? [`--linker=${process.env.LFORTRAN_LINKER ?? "clang"}`]
+          : [],
       };
     case "gfortran":
     case "aocc":
     case "flang":
-      return { module: ["-J", "test_build"], openmp: ["-fopenmp"] };
+      return {
+        module: ["-J", "test_build"],
+        openmp: ["-fopenmp"],
+        linkerFlags: [],
+      };
   }
 }
 
@@ -83,10 +92,11 @@ async function run(): Promise<void> {
 
     core.info(`Starting integration tests for ${fc} in ${buildDir}...`);
 
-    const { module: moduleFlags, openmp: ompFlag } = getCompilerFlags(
-      compiler,
-      isWindows,
-    );
+    const {
+      module: moduleFlags,
+      openmp: ompFlag,
+      linkerFlags: linkerFlags,
+    } = getCompilerFlags(compiler, isWindows);
     const cppFlags = getCppFlags(compiler, isWindows);
     const baseFlags = ["-O2", ...moduleFlags];
 
@@ -104,6 +114,7 @@ async function run(): Promise<void> {
         ...baseFlags,
         ...fflags,
         ...extraFlags,
+        ...linkerFlags,
         ...sourcePaths,
         "-o",
         outputPath,
