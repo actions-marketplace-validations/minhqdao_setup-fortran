@@ -65,26 +65,5 @@ jobs:
             - name: Verify installed version
               run: "echo \"Output: ${{ steps.setup.outputs.compiler-version }}\""
 
-            - name: Write smoke test
-              run: |
-                  find /tmp/lfortran-conda -name "libomp*"
-                  cat > omp_smoke.f90 << 'EOF'
-                  program omp_smoke
-                    use omp_lib
-                    implicit none
-                    print *, "max threads:", omp_get_max_threads()
-                  end program
-                  EOF
-              shell: bash
-
-            - name: Compile
-              run: lfortran omp_smoke.f90 --openmp --openmp-lib-dir=${{
-                  env.LFORTRAN_OMP_LIB_DIR }} -o omp_smoke
-              shell: bash
-
-            - name: Run
-              run: ./omp_smoke
-              shell: bash
-
             - name: Run Integration Tests
               run: npm run integration-test

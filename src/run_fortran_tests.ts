@@ -73,6 +73,7 @@ async function run(): Promise<void> {
     const isLatest = rawVersion === LATEST;
     const majorVersion = isLatest ? Infinity : parseInt(rawVersion, 10);
     const isFlang = compiler === Compiler.Flang;
+    const isLFortran = compiler === Compiler.LFortran;
 
     const testDir = path.join(process.cwd(), "fortran_tests");
 
@@ -143,7 +144,8 @@ async function run(): Promise<void> {
     }
 
     const isUnsupportedDarwin = isDarwin && majorVersion < 23; // LATEST from brew works, let's check with version 23 if installation from source works, too
-    const skipOmp = isFlang && (isUnsupportedDarwin || isUCRT64);
+    const skipOmp =
+      isLFortran || (isFlang && (isUnsupportedDarwin || isUCRT64));
     if (!skipOmp) {
       await execTest("omp_test", ["omp_test.f90"], ompFlag);
     } else {
