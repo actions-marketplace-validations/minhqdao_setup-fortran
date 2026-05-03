@@ -90416,19 +90416,19 @@ function githubHeaders() {
 // Make sure the versions are always in descending order. The first one will be
 // used as the default if no version was specified by the user.
 const SUPPORTED_VERSIONS = {
-    [Arch.X64]: ["15", "14", "13", "12", "11"],
-    [Arch.ARM64]: ["15", "14", "13", "12", "11"],
+    [Arch.X64]: ["16", "15", "14", "13", "12", "11"],
+    [Arch.ARM64]: ["16", "15", "14", "13", "12", "11"],
 };
 async function installDebian(target) {
     const version = resolveVersion(target, SUPPORTED_VERSIONS);
     core.info(`Installing GFortran ${version} on Linux (${target.arch})...`);
-    // if (needsPpa(version, target.osVersion)) {
-    // await exec.exec("sudo", [
-    //   "add-apt-repository",
-    //   "--yes",
-    //   "ppa:ubuntu-toolchain-r/test",
-    // ]);
-    // }
+    if (needsPpa(version, target.osVersion)) {
+        await exec.exec("sudo", [
+            "add-apt-repository",
+            "--yes",
+            "ppa:ubuntu-toolchain-r/test",
+        ]);
+    }
     await exec.exec("sudo", ["apt-get", "update", "-y"]);
     await exec.exec("sudo", [
         "apt-get",
@@ -90457,12 +90457,14 @@ async function installDebian(target) {
     core.info(`GFortran ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
 }
-// function needsPpa(version: string, osVersion: string): boolean {
-//   const v = parseInt(version);
-//   if (osVersion.includes("24")) return v >= 15;
-//   if (osVersion.includes("22")) return v >= 14;
-//   return true;
-// }
+function needsPpa(version, osVersion) {
+    const v = parseInt(version);
+    if (osVersion.includes("24"))
+        return v >= 15;
+    if (osVersion.includes("22"))
+        return v >= 13;
+    return true;
+}
 async function resolveInstalledVersion() {
     let output = "";
     await exec.exec("gfortran", ["--version"], {
