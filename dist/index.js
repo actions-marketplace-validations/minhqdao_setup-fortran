@@ -90422,16 +90422,9 @@ const SUPPORTED_VERSIONS = {
 async function installDebian(target) {
     const version = resolveVersion(target, SUPPORTED_VERSIONS);
     core.info(`Installing GFortran ${version} on Linux (${target.arch})...`);
-    // if (needsPpa(version, target.osVersion)) {
-    //   core.info(`Adding PPA for GFortran ${version}...`);
-    //   await addAptRepositoryWithRetry("ppa:ubuntu-toolchain-r/test");
-    // }
-    if (version === "16" || version === "15" || target.osVersion.includes("22")) {
-        await exec.exec("sudo", [
-            "add-apt-repository",
-            "--yes",
-            "ppa:ubuntu-toolchain-r/test",
-        ]);
+    if (needsPpa(version, target.osVersion)) {
+        core.info(`Adding PPA for GFortran ${version}...`);
+        await addAptRepositoryWithRetry("ppa:ubuntu-toolchain-r/test");
     }
     await exec.exec("sudo", ["apt-get", "update", "-y"]);
     await exec.exec("sudo", [
@@ -90461,29 +90454,28 @@ async function installDebian(target) {
     core.info(`GFortran ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
 }
-// export function needsPpa(version: string, osVersion: string): boolean {
-//   const v = parseInt(version);
-//   if (osVersion.includes("24")) return v >= 15;
-//   if (osVersion.includes("22")) return v >= 13;
-//   return true;
-// }
-// async function addAptRepositoryWithRetry(
-//   ppa: string,
-//   maxAttempts = 3,
-// ): Promise<void> {
-//   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-//     try {
-//       await exec.exec("sudo", ["add-apt-repository", "--yes", ppa]);
-//       return;
-//     } catch (err) {
-//       if (attempt === maxAttempts) throw err;
-//       core.warning(
-//         `add-apt-repository failed (attempt ${attempt.toString()}/${maxAttempts.toString()}), retrying in ${(attempt * 10).toString()}s...`,
-//       );
-//       await new Promise((res) => setTimeout(res, attempt * 5_000));
-//     }
-//   }
-// }
+function needsPpa(version, osVersion) {
+    const v = parseInt(version);
+    if (osVersion.includes("24"))
+        return v >= 15;
+    if (osVersion.includes("22"))
+        return v >= 13;
+    return true;
+}
+async function addAptRepositoryWithRetry(ppa, maxAttempts = 3) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            await exec.exec("sudo", ["add-apt-repository", "--yes", ppa]);
+            return;
+        }
+        catch (err) {
+            if (attempt === maxAttempts)
+                throw err;
+            core.warning(`add-apt-repository failed (attempt ${attempt.toString()}/${maxAttempts.toString()}), retrying in ${(attempt * 10).toString()}s...`);
+            await new Promise((res) => setTimeout(res, attempt * 5_000));
+        }
+    }
+}
 async function resolveInstalledVersion() {
     let output = "";
     await exec.exec("gfortran", ["--version"], {
