@@ -185,7 +185,7 @@ A GitHub Action to install and configure Fortran compilers across Linux, macOS, 
 | 17      | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | 16      | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-> Specific patch versions (e.g. `21.1.6`) are also accepted and validated against available GitHub releases. If the requested patch does not exist, an error is thrown.
+> Specific patch versions (e.g. `21.1.6`) are also accepted on macOS and Windows runners and are validated against available GitHub releases. If the requested patch does not exist, an error is thrown.
 
 ## Examples
 
@@ -198,15 +198,15 @@ steps:
   - run: ${{ env.FC }} hello.f90 -o hello
 ```
 
-This defaults to the `gfortran` compiler and the newest version available on that platform.
+This defaults to `gfortran` and the newest version available on that platform.
 
 ### Specific version
 
 ```yaml
 - uses: minhqdao/setup-fortran@v1
   with:
-    compiler: flang
-    version: "22"
+    compiler: ifx
+    version: "2026.0"
 ```
 
 ### Matrix build
@@ -257,7 +257,7 @@ jobs:
 
 ## Reporting
 
-Please create an [issue](https://github.com/minhqdao/setup-fortran/issues) if you find a problem with a specific configuration or you want features to be added.
+Please submit an [issue](https://github.com/minhqdao/setup-fortran/issues) if you find a problem with a specific configuration or you want features to be added.
 
 ## License
 

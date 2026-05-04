@@ -25,7 +25,11 @@ function getCompilerFlags(
         linkerFlags: [],
       };
     case Compiler.NVFortran:
-      return { module: ["-J", "test_build"], openmp: ["-mp"], linkerFlags: [] };
+      return {
+        module: ["-module", "test_build"],
+        openmp: ["-mp"],
+        linkerFlags: [],
+      };
     case Compiler.LFortran:
       return {
         module: ["-J", "test_build"],
