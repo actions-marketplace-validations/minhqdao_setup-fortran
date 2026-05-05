@@ -90814,6 +90814,7 @@ async function installGFortran(target) {
 
 
 
+
 // A clean list of supported base versions (YYYY.MINOR).
 // The first entry is used as the default when LATEST is requested.
 // ARM64 is not supported: Intel oneAPI does not provide Linux ARM64 packages.
@@ -90847,44 +90848,52 @@ const debian_SUPPORTED_VERSIONS = {
     ],
     [Arch.ARM64]: undefined,
 };
+const ONEAPI_CACHE_PATHS = ["/opt/intel/oneapi"];
+function oneApiCacheKey(version) {
+    return `oneapi-ifx-${version}`;
+}
 async function debian_installDebian(target) {
     const version = resolveVersion(target, debian_SUPPORTED_VERSIONS);
     core.info(`Installing ifx ${version} on Linux (${target.arch})...`);
-    // Add the Intel oneAPI apt repository if not already present.
-    core.info("Adding Intel oneAPI apt repository...");
-    await exec.exec("bash", [
-        "-c",
-        [
-            `wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB`,
-            `| gpg --dearmor`,
-            `| sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null`,
-        ].join(" "),
-    ]);
-    await exec.exec("bash", [
-        "-c",
-        `echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list`,
-    ]);
-    await exec.exec("sudo", ["apt-get", "update", "-y"]);
-    // The versioned package names follow the intel-oneapi-compiler-<component>-<version> scheme.
-    // We install both the Fortran and C++ compilers to provide ifx, icx, and icpx.
-    const fortranPkg = `intel-oneapi-compiler-fortran-${version}`;
-    const LEGACY_CPP_PKG_VERSIONS = ["2021", "2022", "2023"];
-    const cppPkgBase = LEGACY_CPP_PKG_VERSIONS.some((y) => version.startsWith(y))
-        ? "intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic"
-        : "intel-oneapi-compiler-dpcpp-cpp";
-    const cppPkg = `${cppPkgBase}-${version}`;
-    core.info(`Installing apt packages ${fortranPkg} and ${cppPkg}...`);
-    await exec.exec("sudo", [
-        "apt-get",
-        "install",
-        "-y",
-        "--no-install-recommends",
-        fortranPkg,
-        cppPkg,
-    ]);
-    // Source setvars.sh and propagate the relevant environment variables so
-    // subsequent steps have a correctly configured oneAPI environment.
-    // The setvars.sh location follows the Unified Directory Layout (2024.0+).
+    const cacheKey = oneApiCacheKey(version);
+    const cacheHit = await cache.restoreCache(ONEAPI_CACHE_PATHS, cacheKey);
+    if (!cacheHit) {
+        core.info("Adding Intel oneAPI apt repository...");
+        await exec.exec("bash", [
+            "-c",
+            [
+                `wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB`,
+                `| gpg --dearmor`,
+                `| sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null`,
+            ].join(" "),
+        ]);
+        await exec.exec("bash", [
+            "-c",
+            `echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list`,
+        ]);
+        await exec.exec("sudo", ["apt-get", "update", "-y"]);
+        const fortranPkg = `intel-oneapi-compiler-fortran-${version}`;
+        const LEGACY_CPP_PKG_VERSIONS = ["2021", "2022", "2023"];
+        const cppPkgBase = LEGACY_CPP_PKG_VERSIONS.some((y) => version.startsWith(y))
+            ? "intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic"
+            : "intel-oneapi-compiler-dpcpp-cpp";
+        const cppPkg = `${cppPkgBase}-${version}`;
+        core.info(`Installing apt packages ${fortranPkg} and ${cppPkg}...`);
+        await exec.exec("sudo", [
+            "apt-get",
+            "install",
+            "-y",
+            "--no-install-recommends",
+            fortranPkg,
+            cppPkg,
+        ]);
+        await cache.saveCache(ONEAPI_CACHE_PATHS, cacheKey);
+    }
+    else {
+        core.info(`Cache hit for ${cacheKey}, skipping installation...`);
+    }
+    // setvars.sh sourcing always runs — cache hit or miss — because the
+    // environment variables are not cached, only the files are.
     const setVarsScript = "/opt/intel/oneapi/setvars.sh";
     core.info(`Sourcing ${setVarsScript} and exporting environment...`);
     let envOutput = "";

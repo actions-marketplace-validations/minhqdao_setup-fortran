@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
+import * as cache from "@actions/cache";
 import { installDebian } from "../../../src/installers/ifx/debian";
 import {
   Arch,
@@ -11,9 +12,11 @@ import {
 
 jest.mock("@actions/core");
 jest.mock("@actions/exec");
+jest.mock("@actions/cache");
 
 describe("installDebian ifx", () => {
   const mockedExec = exec.exec as jest.MockedFunction<typeof exec.exec>;
+  const mockedCache = cache as jest.Mocked<typeof cache>;
 
   const baseTarget: Target = {
     compiler: Compiler.IFX,
@@ -26,6 +29,7 @@ describe("installDebian ifx", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedCache.restoreCache.mockResolvedValue(undefined);
     mockedExec.mockImplementation(async (commandLine, args, options) => {
       if (commandLine === "ifx" && args?.[0] === "--version") {
         if (options?.listeners?.stdout) {
@@ -45,10 +49,14 @@ describe("installDebian ifx", () => {
     });
   });
 
-  it("installs the correct versioned packages for 2023.2.0", async () => {
+  it("installs the correct versioned packages and saves to cache on miss", async () => {
     const target = { ...baseTarget, version: "2023.2.0" };
     await installDebian(target);
 
+    expect(mockedCache.restoreCache).toHaveBeenCalledWith(
+      ["/opt/intel/oneapi"],
+      "oneapi-ifx-2023.2.0",
+    );
     expect(mockedExec).toHaveBeenCalledWith("sudo", [
       "apt-get",
       "install",
@@ -57,6 +65,35 @@ describe("installDebian ifx", () => {
       "intel-oneapi-compiler-fortran-2023.2.0",
       "intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2023.2.0",
     ]);
+    expect(mockedCache.saveCache).toHaveBeenCalledWith(
+      ["/opt/intel/oneapi"],
+      "oneapi-ifx-2023.2.0",
+    );
+  });
+
+  it("skips installation and restores from cache on hit", async () => {
+    mockedCache.restoreCache.mockResolvedValue("hit");
+    const target = { ...baseTarget, version: "2023.2.0" };
+    await installDebian(target);
+
+    expect(mockedExec).not.toHaveBeenCalledWith("sudo", [
+      "apt-get",
+      "install",
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    ]);
+    expect(mockedCache.saveCache).not.toHaveBeenCalled();
+    // But still sources setvars.sh
+    expect(mockedExec).toHaveBeenCalledWith(
+      "bash",
+      [
+        "-c",
+        expect.stringContaining('source "/opt/intel/oneapi/setvars.sh"'),
+      ],
+      expect.anything(),
+    );
   });
 
   it("maps 2-digit version 2025.2 to 2025.2", async () => {
@@ -73,7 +110,7 @@ describe("installDebian ifx", () => {
     ]);
   });
 
-  it("adds the Intel repository", async () => {
+  it("adds the Intel repository on cache miss", async () => {
     await installDebian(baseTarget);
 
     expect(mockedExec).toHaveBeenCalledWith("bash", [
@@ -86,5 +123,16 @@ describe("installDebian ifx", () => {
       "-c",
       expect.stringContaining("https://apt.repos.intel.com/oneapi all main"),
     ]);
+  });
+
+  it("exports environment variables including FPM flags", async () => {
+    await installDebian(baseTarget);
+
+    expect(core.exportVariable).toHaveBeenCalledWith("FC", "ifx");
+    expect(core.exportVariable).toHaveBeenCalledWith("CC", "icx");
+    expect(core.exportVariable).toHaveBeenCalledWith("CXX", "icpx");
+    expect(core.exportVariable).toHaveBeenCalledWith("FPM_FC", "ifx");
+    expect(core.exportVariable).toHaveBeenCalledWith("FPM_CC", "icx");
+    expect(core.exportVariable).toHaveBeenCalledWith("FPM_CXX", "icpx");
   });
 });
