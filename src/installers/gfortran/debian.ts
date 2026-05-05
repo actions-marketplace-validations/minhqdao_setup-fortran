@@ -20,7 +20,6 @@ export async function installDebian(target: Target): Promise<string> {
     await addAptRepositoryWithRetry("ppa:ubuntu-toolchain-r/test");
   }
 
-  await exec.exec("sudo", ["apt-get", "update", "-y"]);
   await aptGetInstallWithRetry([`gcc-${version}`, `gfortran-${version}`]);
 
   await exec.exec("sudo", [
@@ -52,6 +51,7 @@ async function aptGetInstallWithRetry(
 ): Promise<void> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      await exec.exec("sudo", ["apt-get", "update", "-y"]);
       await exec.exec("sudo", [
         "apt-get",
         "install",

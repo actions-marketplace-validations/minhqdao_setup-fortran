@@ -90426,7 +90426,6 @@ async function installDebian(target) {
         core.info(`Adding PPA for GFortran ${version}...`);
         await addAptRepositoryWithRetry("ppa:ubuntu-toolchain-r/test");
     }
-    await exec.exec("sudo", ["apt-get", "update", "-y"]);
     await aptGetInstallWithRetry([`gcc-${version}`, `gfortran-${version}`]);
     await exec.exec("sudo", [
         "update-alternatives",
@@ -90451,6 +90450,7 @@ async function installDebian(target) {
 async function aptGetInstallWithRetry(packages, maxAttempts = 3) {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
+            await exec.exec("sudo", ["apt-get", "update", "-y"]);
             await exec.exec("sudo", [
                 "apt-get",
                 "install",
