@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
+import * as cache from "@actions/cache";
 import { installDebian } from "../../../src/installers/ifort/debian";
 import {
   Arch,
@@ -11,9 +12,11 @@ import {
 
 jest.mock("@actions/core");
 jest.mock("@actions/exec");
+jest.mock("@actions/cache");
 
 describe("installDebian (ifort)", () => {
   const mockedExec = exec.exec as jest.MockedFunction<typeof exec.exec>;
+  const mockedCache = cache as jest.Mocked<typeof cache>;
   const mockedExportVariable = core.exportVariable as jest.MockedFunction<
     typeof core.exportVariable
   >;
@@ -29,6 +32,7 @@ describe("installDebian (ifort)", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedCache.restoreCache.mockResolvedValue(undefined);
     mockedExec.mockImplementation(async (commandLine, args, options) => {
       if (commandLine === "ifort" && args?.[0] === "--version") {
         if (options?.listeners?.stdout) {
@@ -50,7 +54,7 @@ describe("installDebian (ifort)", () => {
     });
   });
 
-  it("adds the Intel repository", async () => {
+  it("adds the Intel repository on cache miss", async () => {
     await installDebian(baseTarget);
 
     expect(mockedExec).toHaveBeenCalledWith("bash", [
@@ -65,9 +69,13 @@ describe("installDebian (ifort)", () => {
     ]);
   });
 
-  it("installs the correct packages for 2021.10", async () => {
+  it("installs the correct packages and saves to cache on miss", async () => {
     await installDebian(baseTarget);
 
+    expect(mockedCache.restoreCache).toHaveBeenCalledWith(
+      ["/opt/intel/oneapi"],
+      "oneapi-ifort-2023.2.4",
+    );
     expect(mockedExec).toHaveBeenCalledWith("sudo", [
       "apt-get",
       "install",
@@ -76,6 +84,34 @@ describe("installDebian (ifort)", () => {
       "intel-oneapi-compiler-fortran-2023.2.4",
       "intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2023.2.4",
     ]);
+    expect(mockedCache.saveCache).toHaveBeenCalledWith(
+      ["/opt/intel/oneapi"],
+      "oneapi-ifort-2023.2.4",
+    );
+  });
+
+  it("skips installation and restores from cache on hit", async () => {
+    mockedCache.restoreCache.mockResolvedValue("hit");
+    await installDebian(baseTarget);
+
+    expect(mockedExec).not.toHaveBeenCalledWith("sudo", [
+      "apt-get",
+      "install",
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    ]);
+    expect(mockedCache.saveCache).not.toHaveBeenCalled();
+    // But still sources setvars.sh
+    expect(mockedExec).toHaveBeenCalledWith(
+      "bash",
+      [
+        "-c",
+        expect.stringContaining('source "/opt/intel/oneapi/setvars.sh"'),
+      ],
+      expect.anything(),
+    );
   });
 
   it("exports environment variables", async () => {

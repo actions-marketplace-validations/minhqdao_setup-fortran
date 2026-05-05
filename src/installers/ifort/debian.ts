@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
+import * as cache from "@actions/cache";
 import { Arch, type Target } from "../../types";
 import { resolveVersion } from "../../resolve_version";
 
@@ -38,41 +39,50 @@ export async function installDebian(target: Target): Promise<string> {
 
   const bundle = entry.bundle;
 
-  core.info(`Installing ifort ${version} on Linux (${target.arch})...`);
+  const ONEAPI_CACHE_PATHS = ["/opt/intel/oneapi"];
 
-  core.info("Adding Intel oneAPI apt repository...");
-  await exec.exec("bash", [
-    "-c",
-    [
-      `wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB`,
-      `| gpg --dearmor`,
-      `| sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null`,
-    ].join(" "),
-  ]);
-  await exec.exec("bash", [
-    "-c",
-    `echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list`,
-  ]);
+  const cacheKey = `oneapi-ifort-${bundle}`;
+  const cacheHit = await cache.restoreCache(ONEAPI_CACHE_PATHS, cacheKey);
 
-  await exec.exec("sudo", ["apt-get", "update", "-y"]);
+  if (!cacheHit) {
+    core.info("Adding Intel oneAPI apt repository...");
+    await exec.exec("bash", [
+      "-c",
+      [
+        `wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB`,
+        `| gpg --dearmor`,
+        `| sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null`,
+      ].join(" "),
+    ]);
+    await exec.exec("bash", [
+      "-c",
+      `echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list`,
+    ]);
 
-  // The versioned package names follow the intel-oneapi-compiler-<component>-<version> scheme.
-  // Because ifort only exists in <=2023, the C++ package is always the classic variant.
-  const fortranPkg = `intel-oneapi-compiler-fortran-${bundle}`;
-  const cppPkgBase = bundle.startsWith("2024")
-    ? "intel-oneapi-compiler-dpcpp-cpp"
-    : "intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic";
-  const cppPkg = `${cppPkgBase}-${bundle}`;
+    await exec.exec("sudo", ["apt-get", "update", "-y"]);
 
-  core.info(`Installing apt packages ${fortranPkg} and ${cppPkg}...`);
-  await exec.exec("sudo", [
-    "apt-get",
-    "install",
-    "-y",
-    "--no-install-recommends",
-    fortranPkg,
-    cppPkg,
-  ]);
+    // The versioned package names follow the intel-oneapi-compiler-<component>-<version> scheme.
+    // Because ifort only exists in <=2023, the C++ package is always the classic variant.
+    const fortranPkg = `intel-oneapi-compiler-fortran-${bundle}`;
+    const cppPkgBase = bundle.startsWith("2024")
+      ? "intel-oneapi-compiler-dpcpp-cpp"
+      : "intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic";
+    const cppPkg = `${cppPkgBase}-${bundle}`;
+
+    core.info(`Installing apt packages ${fortranPkg} and ${cppPkg}...`);
+    await exec.exec("sudo", [
+      "apt-get",
+      "install",
+      "-y",
+      "--no-install-recommends",
+      fortranPkg,
+      cppPkg,
+    ]);
+
+    await cache.saveCache(ONEAPI_CACHE_PATHS, cacheKey);
+  } else {
+    core.info(`Cache hit for ${cacheKey}, skipping installation...`);
+  }
 
   const setVarsScript = "/opt/intel/oneapi/setvars.sh";
   core.info(`Sourcing ${setVarsScript} and exporting environment...`);
