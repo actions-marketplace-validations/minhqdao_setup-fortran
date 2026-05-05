@@ -91962,6 +91962,7 @@ async function flang_debian_installDebian(target) {
     core.exportVariable("FC", `flang-${version}`);
     core.exportVariable("CC", `clang-${version}`);
     core.exportVariable("CXX", `clang++-${version}`);
+    core.exportVariable("FLANG_VERSION", major);
     // Set LIBRARY_PATH so the Fortran runtime libraries are findable at link
     // time. This is particularly important for LLVM 15/16 where the runtime
     // libs (libFortranRuntime, libFortranDecimal, etc.) are not in the default
@@ -92055,6 +92056,7 @@ async function installBrew(target) {
     core.exportVariable("FC", flangBin);
     core.exportVariable("CC", external_path_.join(llvmBinDir, "clang"));
     core.exportVariable("CXX", external_path_.join(llvmBinDir, "clang++"));
+    core.exportVariable("FLANG_VERSION", LATEST);
     // libomp.dylib lives in the llvm formula's lib dir, not a standalone formula.
     const libDir = external_path_.join(flangOptDir, "lib");
     const libompDir = external_path_.join(brewPrefix, "opt", "llvm", "lib");
@@ -92117,6 +92119,7 @@ async function installFromGitHub(target, major, patch) {
     core.exportVariable("FC", flangBin);
     core.exportVariable("CC", external_path_.join(binDir, "clang"));
     core.exportVariable("CXX", external_path_.join(binDir, "clang++"));
+    core.exportVariable("FLANG_VERSION", major);
     let sdkPath = "";
     try {
         await exec.exec("xcrun", ["--show-sdk-path"], {
@@ -92816,7 +92819,6 @@ async function run() {
         }
         core.setOutput("version", installedVersion);
         core.exportVariable("FORTRAN_COMPILER", target.compiler);
-        core.exportVariable("FORTRAN_COMPILER_VERSION", installedVersion);
     }
     catch (err) {
         core.setFailed(err instanceof Error ? err.message : String(err));

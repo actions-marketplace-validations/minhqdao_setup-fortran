@@ -83,6 +83,7 @@ async function installBrew(target: Target): Promise<string> {
   core.exportVariable("FC", flangBin);
   core.exportVariable("CC", path.join(llvmBinDir, "clang"));
   core.exportVariable("CXX", path.join(llvmBinDir, "clang++"));
+  core.exportVariable("FLANG_VERSION", LATEST);
 
   // libomp.dylib lives in the llvm formula's lib dir, not a standalone formula.
   const libDir = path.join(flangOptDir, "lib");
@@ -171,6 +172,7 @@ async function installFromGitHub(
   core.exportVariable("FC", flangBin);
   core.exportVariable("CC", path.join(binDir, "clang"));
   core.exportVariable("CXX", path.join(binDir, "clang++"));
+  core.exportVariable("FLANG_VERSION", major);
 
   let sdkPath = "";
   try {
