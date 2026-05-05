@@ -254,6 +254,11 @@ jobs:
 | Variable | Description |
 |----------|-------------|
 | `FC` | Path to the Fortran compiler |
+| `CC` | Path to the C compiler |
+| `CXX` | Path to the C++ compiler |
+| `FPM_FC` | Path to the Fortran compiler for FPM |
+| `FPM_CC` | Path to the C compiler for FPM |
+| `FPM_CXX` | Path to the C++ compiler for FPM |
 
 ## Reporting
 

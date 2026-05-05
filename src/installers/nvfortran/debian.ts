@@ -248,6 +248,9 @@ export async function installDebian(target: Target): Promise<string> {
   core.exportVariable("FC", "nvfortran");
   core.exportVariable("CC", "nvc");
   core.exportVariable("CXX", "nvc++");
+  core.exportVariable("FPM_FC", "nvfortran");
+  core.exportVariable("FPM_CC", "nvc");
+  core.exportVariable("FPM_CXX", "nvc++");
 
   // Make the bundled math/comm libraries findable at runtime.
   const libDir = `${installDir}/compilers/lib`;
