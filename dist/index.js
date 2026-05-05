@@ -91959,7 +91959,7 @@ async function flang_debian_installDebian(target) {
     if (external_fs_.existsSync(llvmBinDir)) {
         core.addPath(llvmBinDir);
     }
-    core.exportVariable("FC", `flang-${version}`);
+    core.exportVariable("FC", `${flangBinaryName(major)}-${version}`);
     core.exportVariable("CC", `clang-${version}`);
     core.exportVariable("CXX", `clang++-${version}`);
     core.exportVariable("FLANG_VERSION", major);
@@ -91977,10 +91977,11 @@ async function flang_debian_installDebian(target) {
     return resolvedVersion;
 }
 async function flang_debian_resolveInstalledVersion() {
+    const fc = process.env.FC;
+    if (!fc)
+        throw new Error("FC is not set");
     let output = "";
-    // By this point /usr/bin/flang points to the right binary via
-    // update-alternatives (or was already there), so we can call it directly.
-    await exec.exec("flang", ["--version"], {
+    await exec.exec(fc, ["--version"], {
         listeners: {
             stdout: (data) => {
                 output += data.toString();

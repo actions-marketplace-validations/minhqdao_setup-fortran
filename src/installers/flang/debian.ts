@@ -121,7 +121,7 @@ export async function installDebian(target: Target): Promise<string> {
     core.addPath(llvmBinDir);
   }
 
-  core.exportVariable("FC", `flang-${version}`);
+  core.exportVariable("FC", `${flangBinaryName(major)}-${version}`);
   core.exportVariable("CC", `clang-${version}`);
   core.exportVariable("CXX", `clang++-${version}`);
   core.exportVariable("FLANG_VERSION", major);
@@ -145,10 +145,10 @@ export async function installDebian(target: Target): Promise<string> {
 }
 
 async function resolveInstalledVersion(): Promise<string> {
+  const fc = process.env.FC;
+  if (!fc) throw new Error("FC is not set");
   let output = "";
-  // By this point /usr/bin/flang points to the right binary via
-  // update-alternatives (or was already there), so we can call it directly.
-  await exec.exec("flang", ["--version"], {
+  await exec.exec(fc, ["--version"], {
     listeners: {
       stdout: (data: Buffer) => {
         output += data.toString();

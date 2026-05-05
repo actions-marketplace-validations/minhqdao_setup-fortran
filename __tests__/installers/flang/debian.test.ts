@@ -10,7 +10,13 @@ import {
   type Target,
 } from "../../../src/types";
 
-jest.mock("@actions/core");
+jest.mock("@actions/core", () => ({
+  info: jest.fn(),
+  addPath: jest.fn(),
+  exportVariable: jest.fn((name, value) => {
+    process.env[name] = value;
+  }),
+}));
 jest.mock("@actions/exec");
 jest.mock("fs", () => ({
   ...jest.requireActual("fs"),
@@ -33,12 +39,16 @@ describe("installDebian (Flang)", () => {
     windowsEnv: WindowsEnv.Native,
   };
 
+  const originalEnv = process.env;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env = { ...originalEnv };
     mockedFs.existsSync.mockReturnValue(true);
     mockedExec.mockImplementation(async (commandLine, args, options) => {
       if (
-        (commandLine === "flang-new" || commandLine === "flang") &&
+        (commandLine.startsWith("flang-new") ||
+          commandLine.startsWith("flang")) &&
         args?.[0] === "--version"
       ) {
         if (options?.listeners?.stdout) {
@@ -47,6 +57,10 @@ describe("installDebian (Flang)", () => {
       }
       return 0;
     });
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
   });
 
   it("calls llvm.sh with the correct version", async () => {
@@ -101,7 +115,7 @@ describe("installDebian (Flang)", () => {
     await installDebian(baseTarget);
 
     expect(core.addPath).toHaveBeenCalledWith("/usr/lib/llvm-18/bin");
-    expect(mockedExportVariable).toHaveBeenCalledWith("FC", "flang-18");
+    expect(mockedExportVariable).toHaveBeenCalledWith("FC", "flang-new-18");
     expect(mockedExportVariable).toHaveBeenCalledWith("CC", "clang-18");
     expect(mockedExportVariable).toHaveBeenCalledWith("CXX", "clang++-18");
     expect(mockedExportVariable).toHaveBeenCalledWith(
@@ -110,8 +124,63 @@ describe("installDebian (Flang)", () => {
     );
   });
 
+  it("exports flang-20 for FC when version is 20", async () => {
+    const target = { ...baseTarget, version: "20" };
+    await installDebian(target);
+
+    expect(mockedExportVariable).toHaveBeenCalledWith("FC", "flang-20");
+  });
+
   it("resolves and returns the installed version", async () => {
     const version = await installDebian(baseTarget);
     expect(version).toBe("flang version 18.1.0");
+  });
+
+  it("falls back to versioned symlink if primary binary is missing", async () => {
+    mockedFs.existsSync.mockImplementation((path) => {
+      if (path === "/usr/lib/llvm-18/bin/flang-new") return false;
+      if (path === "/usr/bin/flang-new-18") return true;
+      return true;
+    });
+
+    await installDebian(baseTarget);
+
+    expect(mockedExec).toHaveBeenCalledWith("sudo", [
+      "update-alternatives",
+      "--install",
+      "/usr/bin/flang",
+      "flang",
+      "/usr/bin/flang-new-18",
+      "100",
+    ]);
+  });
+
+  it("skips update-alternatives if binary is already /usr/bin/flang", async () => {
+    mockedFs.existsSync.mockImplementation((path) => {
+      if (path === "/usr/lib/llvm-18/bin/flang-new") return false;
+      if (path === "/usr/bin/flang-new-18") return false;
+      if (path === "/usr/bin/flang-new-18") return false;
+      if (path === "/usr/bin/flang") return true;
+      return true;
+    });
+
+    await installDebian(baseTarget);
+
+    expect(mockedExec).not.toHaveBeenCalledWith("sudo", [
+      "update-alternatives",
+      "--install",
+      "/usr/bin/flang",
+      "flang",
+      "/usr/bin/flang",
+      "100",
+    ]);
+  });
+
+  it("throws error if no flang binary is found", async () => {
+    mockedFs.existsSync.mockReturnValue(false);
+
+    await expect(installDebian(baseTarget)).rejects.toThrow(
+      /Flang binary not found/,
+    );
   });
 });
