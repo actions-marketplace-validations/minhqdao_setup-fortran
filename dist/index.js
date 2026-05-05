@@ -90427,13 +90427,7 @@ async function installDebian(target) {
         await addAptRepositoryWithRetry("ppa:ubuntu-toolchain-r/test");
     }
     await exec.exec("sudo", ["apt-get", "update", "-y"]);
-    await exec.exec("sudo", [
-        "apt-get",
-        "install",
-        "-y",
-        `gcc-${version}`,
-        `gfortran-${version}`,
-    ]);
+    await aptGetInstallWithRetry([`gcc-${version}`, `gfortran-${version}`]);
     await exec.exec("sudo", [
         "update-alternatives",
         "--install",
@@ -90453,6 +90447,29 @@ async function installDebian(target) {
     const resolvedVersion = await resolveInstalledVersion();
     core.info(`GFortran ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
+}
+async function aptGetInstallWithRetry(packages, maxAttempts = 3) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            await exec.exec("sudo", [
+                "apt-get",
+                "install",
+                "-y",
+                "-o",
+                "Acquire::Retries=3",
+                "-o",
+                "Acquire::http::Timeout=60",
+                ...packages,
+            ]);
+            return;
+        }
+        catch (err) {
+            if (attempt === maxAttempts)
+                throw err;
+            core.warning(`apt-get install failed (attempt ${attempt.toString()}/${maxAttempts.toString()}), retrying in ${(attempt * 10).toString()}s...`);
+            await new Promise((res) => setTimeout(res, attempt * 10_000));
+        }
+    }
 }
 function needsPpa(version, osVersion) {
     const v = parseInt(version);

@@ -104,9 +104,68 @@ describe("GFortran Debian Installer", () => {
         "apt-get",
         "install",
         "-y",
+        "-o",
+        "Acquire::Retries=3",
+        "-o",
+        "Acquire::http::Timeout=60",
         "gcc-14",
         "gfortran-14",
       ]);
+    });
+
+    it("retries apt-get install on failure", async () => {
+      mockedExec.mockImplementation(async (cmd, args) => {
+        if (cmd === "sudo" && args?.[0] === "apt-get" && args?.[1] === "install") {
+          if (mockedExec.mock.calls.filter(c => c[1]?.[1] === "install").length === 1) {
+            throw new Error("Failed");
+          }
+        }
+        return 0;
+      });
+
+      jest.useFakeTimers();
+      const installPromise = installDebian(baseTarget);
+      
+      // Advance timers repeatedly to ensure we pass the delay
+      for (let i = 0; i < 10; i++) {
+        await Promise.resolve();
+        jest.advanceTimersByTime(10000);
+      }
+      
+      await installPromise;
+      jest.useRealTimers();
+
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining("apt-get install failed (attempt 1/3)"),
+      );
+    });
+
+    it("retries add-apt-repository on failure", async () => {
+      const target = { ...baseTarget, version: "15", osVersion: "24.04" };
+      
+      mockedExec.mockImplementation(async (cmd, args) => {
+        if (cmd === "sudo" && args?.[0] === "add-apt-repository") {
+          if (mockedExec.mock.calls.filter(c => c[1]?.[0] === "add-apt-repository").length === 1) {
+            throw new Error("Failed");
+          }
+        }
+        return 0;
+      });
+
+      jest.useFakeTimers();
+      const installPromise = installDebian(target);
+      
+      for (let i = 0; i < 10; i++) {
+        await Promise.resolve();
+        jest.advanceTimersByTime(5000);
+      }
+      
+      await installPromise;
+      jest.useRealTimers();
+
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining("add-apt-repository failed (attempt 1/3)"),
+      );
     });
 
     it("configures update-alternatives", async () => {
