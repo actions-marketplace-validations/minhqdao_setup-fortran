@@ -100,9 +100,17 @@ async function installNative(target: Target, version: string): Promise<string> {
 
   core.info(`Setting FC, F77, and F90 environment variables...`);
   const gfortranPath = path.join(binPath, "gfortran.exe");
+  const gccPath = path.join(binPath, "gcc.exe");
+  const gxxPath = path.join(binPath, "g++.exe");
+
   core.exportVariable("FC", gfortranPath);
   core.exportVariable("F77", gfortranPath);
   core.exportVariable("F90", gfortranPath);
+  core.exportVariable("CC", gccPath);
+  core.exportVariable("CXX", gxxPath);
+  core.exportVariable("FPM_FC", gfortranPath);
+  core.exportVariable("FPM_CC", gccPath);
+  core.exportVariable("FPM_CXX", gxxPath);
 
   return await resolveInstalledVersion();
 }
@@ -112,11 +120,18 @@ async function installMSYS2(target: Target): Promise<string> {
 
   const msysBin = path.join("C:\\msys64", target.windowsEnv, "bin");
   const gfortranPath = path.join(msysBin, "gfortran.exe");
+  const gccPath = path.join(msysBin, "gcc.exe");
+  const gxxPath = path.join(msysBin, "g++.exe");
 
   core.info(`Setting FC, F77, and F90 environment variables...`);
   core.exportVariable("FC", gfortranPath);
   core.exportVariable("F77", gfortranPath);
   core.exportVariable("F90", gfortranPath);
+  core.exportVariable("CC", gccPath);
+  core.exportVariable("CXX", gxxPath);
+  core.exportVariable("FPM_FC", gfortranPath);
+  core.exportVariable("FPM_CC", gccPath);
+  core.exportVariable("FPM_CXX", gxxPath);
 
   return await resolveInstalledVersion();
 }

@@ -88,6 +88,9 @@ describe("installDebian (ifort)", () => {
     expect(mockedExportVariable).toHaveBeenCalledWith("FC", "ifort");
     expect(mockedExportVariable).toHaveBeenCalledWith("CC", "icc");
     expect(mockedExportVariable).toHaveBeenCalledWith("CXX", "icpc");
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_FC", "ifort");
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_CC", "icc");
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_CXX", "icpc");
   });
 
   it("applies OpenMP workaround for 2024.1 bundle", async () => {

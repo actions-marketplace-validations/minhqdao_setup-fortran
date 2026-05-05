@@ -116,6 +116,9 @@ export async function installDebian(target: Target): Promise<string> {
   core.exportVariable("FC", "ifort");
   core.exportVariable("CC", "icc");
   core.exportVariable("CXX", "icpc");
+  core.exportVariable("FPM_FC", "ifort");
+  core.exportVariable("FPM_CC", "icc");
+  core.exportVariable("FPM_CXX", "icpc");
 
   const resolvedVersion = await resolveInstalledVersion();
   core.info(`ifort ${resolvedVersion} installed successfully.`);

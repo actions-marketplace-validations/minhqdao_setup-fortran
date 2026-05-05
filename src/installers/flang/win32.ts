@@ -207,6 +207,9 @@ async function installNative(target: Target): Promise<string> {
   core.exportVariable("FC", flangExe);
   core.exportVariable("CC", clangExe);
   core.exportVariable("CXX", clangPPExe);
+  core.exportVariable("FPM_FC", flangExe);
+  core.exportVariable("FPM_CC", clangExe);
+  core.exportVariable("FPM_CXX", clangPPExe);
 
   // Add flang's own lib dir to LIB for Fortran runtime libs, then add MSVC
   // and Windows SDK dirs so lld-link can find the CRT (libcmt, oldnames, etc.)
@@ -244,6 +247,9 @@ async function installMSYS2(target: Target): Promise<string> {
   core.exportVariable("FC", flangExe);
   core.exportVariable("CC", clangExe);
   core.exportVariable("CXX", clangPPExe);
+  core.exportVariable("FPM_FC", flangExe);
+  core.exportVariable("FPM_CC", clangExe);
+  core.exportVariable("FPM_CXX", clangPPExe);
   core.exportVariable("WINDOWS_ENV", target.windowsEnv);
 
   const resolvedVersion = await resolveInstalledVersion(flangExe);

@@ -62,6 +62,11 @@ export async function installDebian(target: Target): Promise<string> {
   core.exportVariable("FC", `gfortran-${version}`);
   core.exportVariable("F77", `gfortran-${version}`);
   core.exportVariable("F90", `gfortran-${version}`);
+  core.exportVariable("CC", `gcc-${version}`);
+  core.exportVariable("CXX", `g++-${version}`);
+  core.exportVariable("FPM_FC", `gfortran-${version}`);
+  core.exportVariable("FPM_CC", `gcc-${version}`);
+  core.exportVariable("FPM_CXX", `g++-${version}`);
 
   const resolvedVersion = await resolveInstalledVersion();
   core.info(`GFortran ${resolvedVersion} installed successfully.`);

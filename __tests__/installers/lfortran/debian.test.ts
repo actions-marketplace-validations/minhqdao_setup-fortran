@@ -84,6 +84,7 @@ describe("installDebian (LFortran)", () => {
 
     expect(core.addPath).toHaveBeenCalledWith(expect.stringContaining("bin"));
     expect(mockedExportVariable).toHaveBeenCalledWith("FC", "lfortran");
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_FC", "lfortran");
     expect(mockedExportVariable).toHaveBeenCalledWith(
       "LFORTRAN_OMP_LIB_DIR",
       expect.stringContaining("lib"),

@@ -124,6 +124,9 @@ export async function installDebian(target: Target): Promise<string> {
   core.exportVariable("FC", `${flangBinaryName(major)}-${version}`);
   core.exportVariable("CC", `clang-${version}`);
   core.exportVariable("CXX", `clang++-${version}`);
+  core.exportVariable("FPM_FC", `${flangBinaryName(major)}-${version}`);
+  core.exportVariable("FPM_CC", `clang-${version}`);
+  core.exportVariable("FPM_CXX", `clang++-${version}`);
   core.exportVariable("FLANG_VERSION", major);
 
   // Set LIBRARY_PATH so the Fortran runtime libraries are findable at link

@@ -231,6 +231,11 @@ describe("GFortran Debian Installer", () => {
       expect(core.exportVariable).toHaveBeenCalledWith("FC", "gfortran-14");
       expect(core.exportVariable).toHaveBeenCalledWith("F77", "gfortran-14");
       expect(core.exportVariable).toHaveBeenCalledWith("F90", "gfortran-14");
+      expect(core.exportVariable).toHaveBeenCalledWith("CC", "gcc-14");
+      expect(core.exportVariable).toHaveBeenCalledWith("CXX", "g++-14");
+      expect(core.exportVariable).toHaveBeenCalledWith("FPM_FC", "gfortran-14");
+      expect(core.exportVariable).toHaveBeenCalledWith("FPM_CC", "gcc-14");
+      expect(core.exportVariable).toHaveBeenCalledWith("FPM_CXX", "g++-14");
     });
   });
 });

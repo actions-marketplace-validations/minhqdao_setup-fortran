@@ -129,6 +129,9 @@ describe("installDebian (Flang)", () => {
     await installDebian(target);
 
     expect(mockedExportVariable).toHaveBeenCalledWith("FC", "flang-20");
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_FC", "flang-20");
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_CC", "clang-20");
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_CXX", "clang++-20");
   });
 
   it("resolves and returns the installed version", async () => {

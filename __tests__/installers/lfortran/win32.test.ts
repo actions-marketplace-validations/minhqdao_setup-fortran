@@ -81,6 +81,7 @@ describe("installWin32 (LFortran)", () => {
 
       expect(core.addPath).toHaveBeenCalledWith(expect.stringContaining("lfortran"));
       expect(mockedExportVariable).toHaveBeenCalledWith("FC", expect.stringContaining("lfortran.exe"));
+      expect(mockedExportVariable).toHaveBeenCalledWith("FPM_FC", expect.stringContaining("lfortran.exe"));
       expect(mockedExportVariable).toHaveBeenCalledWith("LFORTRAN_LINKER", expect.stringContaining("link.exe"));
     });
   });

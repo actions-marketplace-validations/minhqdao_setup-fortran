@@ -142,6 +142,7 @@ async function installConda(target: Target): Promise<string> {
   }
 
   core.exportVariable("FC", lfortranExe);
+  core.exportVariable("FPM_FC", lfortranExe);
   core.exportVariable(
     "LFORTRAN_OMP_LIB_DIR",
     path.join(envPrefix, "Library", "lib"),
@@ -169,6 +170,7 @@ async function installMSYS2(target: Target): Promise<string> {
   core.addPath(msysBin);
 
   core.exportVariable("FC", lfortranExe);
+  core.exportVariable("FPM_FC", lfortranExe);
   core.exportVariable(
     "LFORTRAN_OMP_LIB_DIR",
     path.join("C:\\msys64", target.windowsEnv, "lib"),

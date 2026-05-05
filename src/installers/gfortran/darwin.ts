@@ -70,6 +70,14 @@ export async function installDarwin(target: Target): Promise<string> {
   core.exportVariable("F77", gfortranBinary);
   core.exportVariable("F90", gfortranBinary);
 
+  const gccBinary = path.join(binDir, `gcc-${version}`);
+  const gxxBinary = path.join(binDir, `g++-${version}`);
+  core.exportVariable("CC", gccBinary);
+  core.exportVariable("CXX", gxxBinary);
+  core.exportVariable("FPM_FC", gfortranBinary);
+  core.exportVariable("FPM_CC", gccBinary);
+  core.exportVariable("FPM_CXX", gxxBinary);
+
   const resolvedVersion = await resolveInstalledVersion();
   core.info(`GFortran ${resolvedVersion} installed successfully on Darwin.`);
   return resolvedVersion;

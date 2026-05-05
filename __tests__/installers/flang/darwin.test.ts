@@ -95,6 +95,9 @@ describe("installDarwin (Flang)", () => {
     expect(mockedExportVariable).toHaveBeenCalledWith("FC", expect.any(String));
     expect(mockedExportVariable).toHaveBeenCalledWith("CC", expect.stringContaining("clang"));
     expect(mockedExportVariable).toHaveBeenCalledWith("CXX", expect.stringContaining("clang++"));
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_FC", expect.any(String));
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_CC", expect.stringContaining("clang"));
+    expect(mockedExportVariable).toHaveBeenCalledWith("FPM_CXX", expect.stringContaining("clang++"));
     expect(mockedExportVariable).toHaveBeenCalledWith("SDKROOT", "/path/to/SDK");
   });
 

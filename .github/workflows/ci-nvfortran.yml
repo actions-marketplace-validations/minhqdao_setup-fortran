@@ -86,7 +86,7 @@ jobs:
               run: npm run integration-test
 
             - uses: fortran-lang/setup-fpm@v9
-            - name: Run FPM Tests
+            - name: Run fpm Tests
               run: |
                   fpm new fpm_test_project
                   cd fpm_test_project

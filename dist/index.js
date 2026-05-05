@@ -90467,6 +90467,11 @@ async function installDebian(target) {
     core.exportVariable("FC", `gfortran-${version}`);
     core.exportVariable("F77", `gfortran-${version}`);
     core.exportVariable("F90", `gfortran-${version}`);
+    core.exportVariable("CC", `gcc-${version}`);
+    core.exportVariable("CXX", `g++-${version}`);
+    core.exportVariable("FPM_FC", `gfortran-${version}`);
+    core.exportVariable("FPM_CC", `gcc-${version}`);
+    core.exportVariable("FPM_CXX", `g++-${version}`);
     const resolvedVersion = await resolveInstalledVersion();
     core.info(`GFortran ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
@@ -90593,6 +90598,13 @@ async function installDarwin(target) {
     core.exportVariable("FC", gfortranBinary);
     core.exportVariable("F77", gfortranBinary);
     core.exportVariable("F90", gfortranBinary);
+    const gccBinary = external_path_.join(binDir, `gcc-${version}`);
+    const gxxBinary = external_path_.join(binDir, `g++-${version}`);
+    core.exportVariable("CC", gccBinary);
+    core.exportVariable("CXX", gxxBinary);
+    core.exportVariable("FPM_FC", gfortranBinary);
+    core.exportVariable("FPM_CC", gccBinary);
+    core.exportVariable("FPM_CXX", gxxBinary);
     const resolvedVersion = await darwin_resolveInstalledVersion();
     core.info(`GFortran ${resolvedVersion} installed successfully on Darwin.`);
     return resolvedVersion;
@@ -90737,19 +90749,33 @@ async function installNative(target, version) {
     core.addPath(binPath);
     core.info(`Setting FC, F77, and F90 environment variables...`);
     const gfortranPath = external_path_.join(binPath, "gfortran.exe");
+    const gccPath = external_path_.join(binPath, "gcc.exe");
+    const gxxPath = external_path_.join(binPath, "g++.exe");
     core.exportVariable("FC", gfortranPath);
     core.exportVariable("F77", gfortranPath);
     core.exportVariable("F90", gfortranPath);
+    core.exportVariable("CC", gccPath);
+    core.exportVariable("CXX", gxxPath);
+    core.exportVariable("FPM_FC", gfortranPath);
+    core.exportVariable("FPM_CC", gccPath);
+    core.exportVariable("FPM_CXX", gxxPath);
     return await win32_resolveInstalledVersion();
 }
 async function installMSYS2(target) {
     await setupMSYS2(target.windowsEnv, ["gcc-fortran"]);
     const msysBin = external_path_.join("C:\\msys64", target.windowsEnv, "bin");
     const gfortranPath = external_path_.join(msysBin, "gfortran.exe");
+    const gccPath = external_path_.join(msysBin, "gcc.exe");
+    const gxxPath = external_path_.join(msysBin, "g++.exe");
     core.info(`Setting FC, F77, and F90 environment variables...`);
     core.exportVariable("FC", gfortranPath);
     core.exportVariable("F77", gfortranPath);
     core.exportVariable("F90", gfortranPath);
+    core.exportVariable("CC", gccPath);
+    core.exportVariable("CXX", gxxPath);
+    core.exportVariable("FPM_FC", gfortranPath);
+    core.exportVariable("FPM_CC", gccPath);
+    core.exportVariable("FPM_CXX", gxxPath);
     return await win32_resolveInstalledVersion();
 }
 async function win32_resolveInstalledVersion() {
@@ -91211,6 +91237,9 @@ async function ifort_debian_installDebian(target) {
     core.exportVariable("FC", "ifort");
     core.exportVariable("CC", "icc");
     core.exportVariable("CXX", "icpc");
+    core.exportVariable("FPM_FC", "ifort");
+    core.exportVariable("FPM_CC", "icc");
+    core.exportVariable("FPM_CXX", "icpc");
     const resolvedVersion = await ifort_debian_resolveInstalledVersion();
     core.info(`ifort ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
@@ -91356,6 +91385,9 @@ async function darwin_installDarwin(target) {
     core.exportVariable("FC", "ifort");
     core.exportVariable("CC", "icc");
     core.exportVariable("CXX", "icpc");
+    core.exportVariable("FPM_FC", "ifort");
+    core.exportVariable("FPM_CC", "icc");
+    core.exportVariable("FPM_CXX", "icpc");
     const resolvedVersion = await ifort_darwin_resolveInstalledVersion();
     core.info(`ifort ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
@@ -91489,6 +91521,9 @@ async function ifort_win32_installWin32(target) {
     core.exportVariable("FC", "ifort");
     core.exportVariable("CC", "icl");
     core.exportVariable("CXX", "icl");
+    core.exportVariable("FPM_FC", "ifort");
+    core.exportVariable("FPM_CC", "icl");
+    core.exportVariable("FPM_CXX", "icl");
     const resolvedVersion = await ifort_win32_resolveInstalledVersion();
     core.info(`ifort ${resolvedVersion} installed successfully.`);
     return resolvedVersion;
@@ -92031,6 +92066,9 @@ async function flang_debian_installDebian(target) {
     core.exportVariable("FC", `${flangBinaryName(major)}-${version}`);
     core.exportVariable("CC", `clang-${version}`);
     core.exportVariable("CXX", `clang++-${version}`);
+    core.exportVariable("FPM_FC", `${flangBinaryName(major)}-${version}`);
+    core.exportVariable("FPM_CC", `clang-${version}`);
+    core.exportVariable("FPM_CXX", `clang++-${version}`);
     core.exportVariable("FLANG_VERSION", major);
     // Set LIBRARY_PATH so the Fortran runtime libraries are findable at link
     // time. This is particularly important for LLVM 15/16 where the runtime
@@ -92126,6 +92164,9 @@ async function installBrew(target) {
     core.exportVariable("FC", flangBin);
     core.exportVariable("CC", external_path_.join(llvmBinDir, "clang"));
     core.exportVariable("CXX", external_path_.join(llvmBinDir, "clang++"));
+    core.exportVariable("FPM_FC", flangBin);
+    core.exportVariable("FPM_CC", external_path_.join(llvmBinDir, "clang"));
+    core.exportVariable("FPM_CXX", external_path_.join(llvmBinDir, "clang++"));
     core.exportVariable("FLANG_VERSION", LATEST);
     // libomp.dylib lives in the llvm formula's lib dir, not a standalone formula.
     const libDir = external_path_.join(flangOptDir, "lib");
@@ -92189,6 +92230,9 @@ async function installFromGitHub(target, major, patch) {
     core.exportVariable("FC", flangBin);
     core.exportVariable("CC", external_path_.join(binDir, "clang"));
     core.exportVariable("CXX", external_path_.join(binDir, "clang++"));
+    core.exportVariable("FPM_FC", flangBin);
+    core.exportVariable("FPM_CC", external_path_.join(binDir, "clang"));
+    core.exportVariable("FPM_CXX", external_path_.join(binDir, "clang++"));
     core.exportVariable("FLANG_VERSION", major);
     let sdkPath = "";
     try {
@@ -92399,6 +92443,9 @@ async function win32_installNative(target) {
     core.exportVariable("FC", flangExe);
     core.exportVariable("CC", clangExe);
     core.exportVariable("CXX", clangPPExe);
+    core.exportVariable("FPM_FC", flangExe);
+    core.exportVariable("FPM_CC", clangExe);
+    core.exportVariable("FPM_CXX", clangPPExe);
     // Add flang's own lib dir to LIB for Fortran runtime libs, then add MSVC
     // and Windows SDK dirs so lld-link can find the CRT (libcmt, oldnames, etc.)
     const flangLibDir = external_path_.join(toolRoot, "lib");
@@ -92423,6 +92470,9 @@ async function win32_installMSYS2(target) {
     core.exportVariable("FC", flangExe);
     core.exportVariable("CC", clangExe);
     core.exportVariable("CXX", clangPPExe);
+    core.exportVariable("FPM_FC", flangExe);
+    core.exportVariable("FPM_CC", clangExe);
+    core.exportVariable("FPM_CXX", clangPPExe);
     core.exportVariable("WINDOWS_ENV", target.windowsEnv);
     const resolvedVersion = await flang_win32_resolveInstalledVersion(flangExe);
     core.info(`Flang ${resolvedVersion} installed successfully via MSYS2.`);
@@ -92535,6 +92585,7 @@ async function lfortran_debian_installDebian(target) {
     // provides as the C/C++ companion.  We leave CC/CXX unset so downstream
     // steps can choose their own C toolchain without surprising overrides.
     core.exportVariable("FC", "lfortran");
+    core.exportVariable("FPM_FC", "lfortran");
     core.exportVariable("LFORTRAN_OMP_LIB_DIR", external_path_.join(condaPrefix, "lib"));
     const resolvedVersion = await lfortran_debian_resolveInstalledVersion(lfortranBin);
     core.info(`LFortran ${resolvedVersion} installed successfully.`);
@@ -92634,6 +92685,7 @@ async function lfortran_darwin_installDarwin(target) {
     core.info(`Found lfortran binary at: ${lfortranBin}`);
     core.addPath(lfortranBinDir);
     core.exportVariable("FC", "lfortran");
+    core.exportVariable("FPM_FC", "lfortran");
     core.exportVariable("LFORTRAN_OMP_LIB_DIR", external_path_.join(condaPrefix, "lib"));
     // lfortran links against system libc++ on macOS; set SDKROOT so the linker
     // can find the right SDK headers when compiling generated C/C++ code.
@@ -92793,6 +92845,7 @@ async function installConda(target) {
         core.warning("lld-link.exe not found; LFortran may fail to link on Windows.");
     }
     core.exportVariable("FC", lfortranExe);
+    core.exportVariable("FPM_FC", lfortranExe);
     core.exportVariable("LFORTRAN_OMP_LIB_DIR", external_path_.join(envPrefix, "Library", "lib"));
     const resolvedVersion = await lfortran_win32_resolveInstalledVersion(lfortranExe);
     core.info(`LFortran ${resolvedVersion} installed successfully on Windows (conda).`);
@@ -92807,6 +92860,7 @@ async function lfortran_win32_installMSYS2(target) {
     const lfortranExe = external_path_.join(msysBin, "lfortran.exe");
     core.addPath(msysBin);
     core.exportVariable("FC", lfortranExe);
+    core.exportVariable("FPM_FC", lfortranExe);
     core.exportVariable("LFORTRAN_OMP_LIB_DIR", external_path_.join("C:\\msys64", target.windowsEnv, "lib"));
     core.exportVariable("WINDOWS_ENV", target.windowsEnv);
     const resolvedVersion = await lfortran_win32_resolveInstalledVersion(lfortranExe);
