@@ -62,12 +62,10 @@ export async function installDebian(target: Target): Promise<string> {
   // The versioned package names follow the intel-oneapi-compiler-<component>-<version> scheme.
   // We install both the Fortran and C++ compilers to provide ifx, icx, and icpx.
   const fortranPkg = `intel-oneapi-compiler-fortran-${version}`;
-  const cppPkgBase =
-    version.startsWith("2024") ||
-    version.startsWith("2025") ||
-    version.startsWith("2026")
-      ? "intel-oneapi-compiler-dpcpp-cpp"
-      : "intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic";
+  const LEGACY_CPP_PKG_VERSIONS = ["2021", "2022", "2023"];
+  const cppPkgBase = LEGACY_CPP_PKG_VERSIONS.some((y) => version.startsWith(y))
+    ? "intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic"
+    : "intel-oneapi-compiler-dpcpp-cpp";
   const cppPkg = `${cppPkgBase}-${version}`;
 
   core.info(`Installing apt packages ${fortranPkg} and ${cppPkg}...`);
