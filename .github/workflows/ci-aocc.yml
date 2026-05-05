@@ -56,5 +56,5 @@ jobs:
               run: |
                   fpm new fpm_test_project
                   cd fpm_test_project
-                  fpm build
+                  fpm build --verbose
                   fpm test
