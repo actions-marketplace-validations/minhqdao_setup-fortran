@@ -101,8 +101,6 @@ A GitHub Action to install and configure Fortran compilers across Linux, macOS, 
 
 ---
 
-> If you are using `fpm` on `macOS` runners, make sure to additionally install `gcc@12` to satisfy runtime dependencies.
-
 ### `nvfortran`
 
 | Version | ubuntu-24.04 | ubuntu-22.04 | ubuntu-24.04-arm | ubuntu-22.04-arm |
@@ -187,7 +185,7 @@ A GitHub Action to install and configure Fortran compilers across Linux, macOS, 
 | 17      | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | 16      | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-> Specific patch versions (e.g. `21.1.6`) are also accepted on macOS and Windows runners and are validated against available GitHub releases. If the requested patch does not exist, an error is thrown.
+> Specific patch versions (e.g. `21.1.6`) are also accepted on macOS and Windows runners and are validated against available GitHub releases. If the requested patch does not exist, an error is thrown. Patches aren't specifically tested.
 
 ## Examples
 
@@ -261,10 +259,6 @@ jobs:
 | `FPM_FC` | Path to the Fortran compiler for fpm |
 | `FPM_CC` | Path to the C compiler for fpm (not set for `lfortran`) |
 | `FPM_CXX` | Path to the C++ compiler for fpm (not set for `lfortran`) |
-
-## Notes
-
-- `fpm` currently does not ship `linux-arm` binaries. So if you are using an ARM runner, `fpm` will fail.
 
 ## Reporting
 

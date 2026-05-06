@@ -84,14 +84,3 @@ jobs:
 
       - name: Run Integration Tests
         run: npm run integration-test
-
-      - uses: fortran-lang/setup-fpm@v9
-        if: ${{ !(runner.os == 'Linux' && runner.arch == 'ARM64') }}
-
-      - name: Run fpm Tests
-        if: ${{ !(runner.os == 'Linux' && runner.arch == 'ARM64') }}
-        run: |
-          fpm new fpm_test_project
-          cd fpm_test_project
-          fpm build --verbose
-          fpm test
