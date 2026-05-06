@@ -193,7 +193,7 @@ A GitHub Action to install and configure Fortran compilers across Linux, macOS, 
 
 ```yaml
 steps:
-  - uses: actions/checkout@v4
+  - uses: actions/checkout@v6
   - uses: minhqdao/setup-fortran@v1
   - run: ${{ env.FC }} hello.f90 -o hello
 ```
