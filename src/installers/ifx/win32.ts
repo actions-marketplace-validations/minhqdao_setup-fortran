@@ -145,15 +145,7 @@ export async function installWin32(target: Target): Promise<string> {
     );
 
     core.info("Running silent install...");
-    await exec.exec(`"${installerPath}"`, [
-      "-s",
-      "-a",
-      "--silent",
-      "--eula",
-      "accept",
-      "-p=NEED_VS2019_INTEGRATION=0",
-      "-p=NEED_VS2022_INTEGRATION=0",
-    ]);
+    await runInstallerWithRetry(installerPath);
 
     core.info("Saving installation to cache...");
     await cache.saveCache(cachePaths, cacheKey);
@@ -196,6 +188,32 @@ export async function installWin32(target: Target): Promise<string> {
   const resolvedVersion = await resolveInstalledVersion();
   core.info(`ifx ${resolvedVersion} installed successfully.`);
   return resolvedVersion;
+}
+
+async function runInstallerWithRetry(
+  installerPath: string,
+  maxAttempts = 3,
+): Promise<void> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await exec.exec(`"${installerPath}"`, [
+        "-s",
+        "-a",
+        "--silent",
+        "--eula",
+        "accept",
+        "-p=NEED_VS2019_INTEGRATION=0",
+        "-p=NEED_VS2022_INTEGRATION=0",
+      ]);
+      return;
+    } catch (err) {
+      if (attempt === maxAttempts) throw err;
+      core.warning(
+        `Installer crashed (attempt ${attempt.toString()}/${maxAttempts.toString()}), retrying in ${(attempt * 15).toString()}s...`,
+      );
+      await new Promise((res) => setTimeout(res, attempt * 15_000));
+    }
+  }
 }
 
 async function resolveInstalledVersion(): Promise<string> {
