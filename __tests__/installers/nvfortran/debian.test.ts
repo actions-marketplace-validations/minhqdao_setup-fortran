@@ -7,7 +7,7 @@ import {
   Arch,
   Compiler,
   OS,
-  WindowsEnv,
+  Msystem,
   type Target,
 } from "../../../src/types";
 
@@ -37,7 +37,7 @@ describe("installDebian (NVFortran)", () => {
     os: OS.Linux,
     osVersion: "22.04",
     arch: Arch.X64,
-    windowsEnv: WindowsEnv.Native,
+    msystem: Msystem.Native,
   };
 
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { resolveVersion, resolveWindowsVersion } from "../src/resolve_version";
-import { Arch, Compiler, LATEST, OS, WindowsEnv } from "../src/types";
+import { Arch, Compiler, LATEST, OS, Msystem } from "../src/types";
 import type { Target } from "../src/types";
 
 const baseTarget: Target = {
@@ -8,7 +8,7 @@ const baseTarget: Target = {
   os: OS.Linux,
   osVersion: "22.04",
   arch: Arch.X64,
-  windowsEnv: WindowsEnv.Native,
+  msystem: Msystem.Native,
 };
 
 const SUPPORTED: Record<string, readonly string[]> = {
@@ -106,30 +106,30 @@ describe("resolveWindowsVersion", () => {
 
   const SUPPORTED_WIN: Record<
     string,
-    Record<WindowsEnv, readonly string[] | undefined>
+    Record<Msystem, readonly string[] | undefined>
   > = {
     [Arch.X64]: {
-      [WindowsEnv.Native]: ["15", "14"],
-      [WindowsEnv.UCRT64]: ["14", "13"],
-      [WindowsEnv.Clang64]: undefined,
+      [Msystem.Native]: ["15", "14"],
+      [Msystem.UCRT64]: ["14", "13"],
+      [Msystem.Clang64]: undefined,
     },
     [Arch.ARM64]: {
-      [WindowsEnv.Native]: ["14"],
-      [WindowsEnv.UCRT64]: undefined,
-      [WindowsEnv.Clang64]: undefined,
+      [Msystem.Native]: ["14"],
+      [Msystem.UCRT64]: undefined,
+      [Msystem.Clang64]: undefined,
     },
   };
 
-  it("resolves LATEST for a specific windowsEnv", () => {
-    const target = { ...winTarget, windowsEnv: WindowsEnv.UCRT64 };
+  it("resolves LATEST for a specific msystem", () => {
+    const target = { ...winTarget, msystem: Msystem.UCRT64 };
     const result = resolveWindowsVersion(target, SUPPORTED_WIN);
     expect(result).toBe("14");
   });
 
-  it("resolves a specific version for a specific windowsEnv", () => {
+  it("resolves a specific version for a specific msystem", () => {
     const target = {
       ...winTarget,
-      windowsEnv: WindowsEnv.Native,
+      msystem: Msystem.Native,
       version: "14",
     };
     const result = resolveWindowsVersion(target, SUPPORTED_WIN);
@@ -139,7 +139,7 @@ describe("resolveWindowsVersion", () => {
   it("throws if the environment is not supported for that architecture", () => {
     const target = {
       ...winTarget,
-      windowsEnv: WindowsEnv.UCRT64,
+      msystem: Msystem.UCRT64,
       arch: Arch.ARM64,
     };
     expect(() => resolveWindowsVersion(target, SUPPORTED_WIN)).toThrow(
@@ -147,10 +147,10 @@ describe("resolveWindowsVersion", () => {
     );
   });
 
-  it("throws if the version is not supported for that windowsEnv", () => {
+  it("throws if the version is not supported for that msystem", () => {
     const target = {
       ...winTarget,
-      windowsEnv: WindowsEnv.UCRT64,
+      msystem: Msystem.UCRT64,
       version: "15",
     };
     expect(() => resolveWindowsVersion(target, SUPPORTED_WIN)).toThrow(

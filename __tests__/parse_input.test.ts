@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import * as os from "os";
 import { parseInputs } from "../src/parse_inputs";
-import { Compiler, OS, Arch, WindowsEnv, LATEST } from "../src/types";
+import { Compiler, OS, Arch, Msystem, LATEST } from "../src/types";
 
 jest.mock("@actions/core");
 jest.mock("os");
@@ -52,7 +52,7 @@ describe("parseInputs", () => {
       os: OS.Linux,
       osVersion: "5.15.0",
       arch: Arch.X64,
-      windowsEnv: WindowsEnv.Native,
+      msystem: Msystem.Native,
     });
   });
 
@@ -65,7 +65,7 @@ describe("parseInputs", () => {
       os: OS.Linux,
       osVersion: "5.15.0",
       arch: Arch.X64,
-      windowsEnv: WindowsEnv.Native,
+      msystem: Msystem.Native,
     });
   });
 
@@ -157,23 +157,23 @@ describe("parseInputs", () => {
     });
   });
 
-  describe("windows-env input", () => {
-    it("parses valid windows-env names case-insensitively", () => {
+  describe("msystem input", () => {
+    it("parses valid msystem names case-insensitively", () => {
       mockedGetInput.mockImplementation((name) => {
-        if (name === "windows-env") return " UCRT64 ";
+        if (name === "msystem") return " UCRT64 ";
         return "";
       });
       const result = parseInputs();
-      expect(result.windowsEnv).toBe(WindowsEnv.UCRT64);
+      expect(result.msystem).toBe(Msystem.UCRT64);
     });
 
-    it("throws error for unknown windows-env", () => {
+    it("throws error for unknown msystem", () => {
       mockedGetInput.mockImplementation((name) => {
-        if (name === "windows-env") return "msys"; // incomplete
+        if (name === "msystem") return "msys"; // incomplete
         return "";
       });
       expect(() => parseInputs()).toThrow(
-        'Unknown windows-env "msys". Valid options: native, ucrt64',
+        'Unknown msystem "msys". Valid options: native, ucrt64',
       );
     });
   });

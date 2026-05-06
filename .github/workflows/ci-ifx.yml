@@ -12,7 +12,7 @@ jobs:
 
   integration-tests:
     name: ${{ matrix.toolchain.version }} ${{ matrix.image }} ${{
-      matrix.toolchain.windowsEnv }}
+      matrix.toolchain.msystem }}
     runs-on: ${{ matrix.image }}
     needs: [ build ]
     strategy:

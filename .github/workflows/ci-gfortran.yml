@@ -12,7 +12,7 @@ jobs:
 
   integration-tests:
     name: ${{ matrix.toolchain.version }} ${{ matrix.image }} ${{
-      matrix.toolchain.windowsEnv }}
+      matrix.toolchain.msystem }}
     runs-on: ${{ matrix.image }}
     needs: [ build ]
     strategy:
@@ -44,9 +44,9 @@ jobs:
           - image: macos-latest # no compiler and version specified, defaults to the latest gfortran version
           - image: windows-latest # no compiler and version specified, defaults to the latest gfortran version
           - image: windows-2025
-            toolchain: { compiler: gfortran, windowsEnv: ucrt64 } # only latest version available from Pacman
+            toolchain: { compiler: gfortran, msystem: ucrt64 } # only latest version available from Pacman
           - image: windows-2022
-            toolchain: { compiler: gfortran, windowsEnv: ucrt64 } # only latest version available from Pacman
+            toolchain: { compiler: gfortran, msystem: ucrt64 } # only latest version available from Pacman
         exclude:
           - image: macos-26
             toolchain: { compiler: gfortran, version: "16" }
@@ -74,7 +74,7 @@ jobs:
         with:
           compiler: ${{ matrix.toolchain.compiler }}
           version: ${{ matrix.toolchain.version }}
-          windows-env: ${{ matrix.toolchain.windowsEnv }}
+          msystem: ${{ matrix.toolchain.msystem }}
 
       - name: Verify installed version
         run: "echo \"Output: ${{ steps.setup.outputs.version }}\""

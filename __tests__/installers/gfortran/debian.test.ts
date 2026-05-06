@@ -9,7 +9,7 @@ import {
   Arch,
   Compiler,
   OS,
-  WindowsEnv,
+  Msystem,
   type Target,
 } from "../../../src/types";
 
@@ -27,7 +27,7 @@ describe("GFortran Debian Installer", () => {
     os: OS.Linux,
     osVersion: "20.04.6",
     arch: Arch.X64,
-    windowsEnv: WindowsEnv.Native,
+    msystem: Msystem.Native,
   };
 
   beforeEach(() => {

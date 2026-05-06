@@ -12,7 +12,7 @@ jobs:
 
   integration-tests:
     name: ${{ matrix.toolchain.version }} ${{ matrix.image }} ${{
-      matrix.toolchain.windowsEnv }}
+      matrix.toolchain.msystem }}
     runs-on: ${{ matrix.image }}
     needs: [ build ]
     strategy:
@@ -70,13 +70,13 @@ jobs:
           - image: windows-11-arm
             toolchain: { compiler: flang, version: "20" }
           - image: windows-2025
-            toolchain: { compiler: flang, windowsEnv: ucrt64 } # only latest version available from Pacman
+            toolchain: { compiler: flang, msystem: ucrt64 } # only latest version available from Pacman
           - image: windows-2022
-            toolchain: { compiler: flang, windowsEnv: ucrt64 } # only latest version available from Pacman
+            toolchain: { compiler: flang, msystem: ucrt64 } # only latest version available from Pacman
           - image: windows-2025
-            toolchain: { compiler: flang, windowsEnv: clang64 } # only latest version available from Pacman
+            toolchain: { compiler: flang, msystem: clang64 } # only latest version available from Pacman
           - image: windows-2022
-            toolchain: { compiler: flang, windowsEnv: clang64 } # only latest version available from Pacman
+            toolchain: { compiler: flang, msystem: clang64 } # only latest version available from Pacman
     steps:
       - uses: actions/checkout@v6
 
@@ -92,7 +92,7 @@ jobs:
         with:
           compiler: ${{ matrix.toolchain.compiler }}
           version: ${{ matrix.toolchain.version }}
-          windows-env: ${{ matrix.toolchain.windowsEnv }}
+          msystem: ${{ matrix.toolchain.msystem }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -7,7 +7,7 @@ import {
   Arch,
   Compiler,
   OS,
-  WindowsEnv,
+  Msystem,
   type Target,
   LATEST,
 } from "../../../src/types";
@@ -40,7 +40,7 @@ describe("installDarwin (Flang)", () => {
     os: OS.MacOS,
     osVersion: "13",
     arch: Arch.X64,
-    windowsEnv: WindowsEnv.Native,
+    msystem: Msystem.Native,
   };
 
   beforeEach(() => {

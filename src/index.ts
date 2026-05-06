@@ -20,7 +20,7 @@ async function run(): Promise<void> {
     core.info(`Arch      : ${target.arch}`);
 
     if (target.os === OS.Windows) {
-      core.info(`Windows env : ${target.windowsEnv}`);
+      core.info(`Windows env : ${target.msystem}`);
     }
 
     let installedVersion: string;

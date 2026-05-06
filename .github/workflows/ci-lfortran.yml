@@ -12,7 +12,7 @@ jobs:
 
   integration-tests:
     name: ${{ matrix.toolchain.version }} ${{ matrix.image }} ${{
-      matrix.toolchain.windowsEnv }}
+      matrix.toolchain.msystem }}
     runs-on: ${{ matrix.image }}
     needs: [ build ]
     strategy:
@@ -40,13 +40,13 @@ jobs:
           - { compiler: lfortran, version: "0.57.0" }
         include:
           - image: windows-2025
-            toolchain: { compiler: lfortran, windowsEnv: ucrt64 } # only latest version available from Pacman
+            toolchain: { compiler: lfortran, msystem: ucrt64 } # only latest version available from Pacman
           - image: windows-2022
-            toolchain: { compiler: lfortran, windowsEnv: ucrt64 } # only latest version available from Pacman
+            toolchain: { compiler: lfortran, msystem: ucrt64 } # only latest version available from Pacman
           - image: windows-2025
-            toolchain: { compiler: lfortran, windowsEnv: clang64 } # only latest version available from Pacman
+            toolchain: { compiler: lfortran, msystem: clang64 } # only latest version available from Pacman
           - image: windows-2022
-            toolchain: { compiler: lfortran, windowsEnv: clang64 } # only latest version available from Pacman
+            toolchain: { compiler: lfortran, msystem: clang64 } # only latest version available from Pacman
     steps:
       - uses: actions/checkout@v6
 
@@ -62,7 +62,7 @@ jobs:
         with:
           compiler: ${{ matrix.toolchain.compiler }}
           version: ${{ matrix.toolchain.version }}
-          windows-env: ${{ matrix.toolchain.windowsEnv }}
+          msystem: ${{ matrix.toolchain.msystem }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

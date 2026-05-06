@@ -1,11 +1,11 @@
 import * as core from "@actions/core";
 import * as os from "os";
-import { Compiler, OS, Arch, WindowsEnv, LATEST, type Target } from "./types";
+import { Compiler, OS, Arch, Msystem, LATEST, type Target } from "./types";
 
 const DEFAULTS = {
   compiler: Compiler.GFortran,
   version: LATEST,
-  windowsEnv: WindowsEnv.Native,
+  msystem: Msystem.Native,
 } as const;
 
 function detectOS(): OS {
@@ -85,19 +85,19 @@ function parseCompiler(raw: string): Compiler {
   );
 }
 
-function parseWindowsEnv(raw: string): WindowsEnv {
-  const valid = Object.values(WindowsEnv);
-  const val = raw.toLowerCase().trim() as WindowsEnv;
+function parseMsystem(raw: string): Msystem {
+  const valid = Object.values(Msystem);
+  const val = raw.toLowerCase().trim() as Msystem;
   if (valid.includes(val)) return val;
   throw new Error(
-    `Unknown windows-env "${raw}". Valid options: ${valid.join(", ")}`,
+    `Unknown msystem "${raw}". Valid options: ${valid.join(", ")}`,
   );
 }
 
 export function parseInputs(): Target {
   const rawCompiler = core.getInput("compiler").trim() || DEFAULTS.compiler;
   const rawVersion = core.getInput("version").trim() || DEFAULTS.version;
-  const rawWinEnv = core.getInput("windows-env").trim();
+  const rawMsystem = core.getInput("msystem").trim();
 
   const compiler = parseCompiler(rawCompiler);
   const detectedOS = detectOS();
@@ -108,7 +108,7 @@ export function parseInputs(): Target {
     os: detectedOS,
     osVersion: process.env.ImageOS ?? os.release(),
     arch: detectArch(),
-    windowsEnv: rawWinEnv ? parseWindowsEnv(rawWinEnv) : DEFAULTS.windowsEnv,
+    msystem: rawMsystem ? parseMsystem(rawMsystem) : DEFAULTS.msystem,
   };
 
   return target;

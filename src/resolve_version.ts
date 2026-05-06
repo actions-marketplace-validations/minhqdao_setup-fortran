@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 
-import { LATEST, type WindowsEnv, type Target } from "./types";
+import { LATEST, type Msystem, type Target } from "./types";
 
 export function resolveVersion<T extends readonly string[]>(
   target: Target,
@@ -53,7 +53,7 @@ export function resolveWindowsVersion(
   target: Target,
   supportedVersions: Record<
     string,
-    Record<WindowsEnv, readonly string[] | undefined> | undefined
+    Record<Msystem, readonly string[] | undefined> | undefined
   >,
   { matchMajorIfPatch = false }: { matchMajorIfPatch?: boolean } = {},
 ): string {
@@ -65,12 +65,12 @@ export function resolveWindowsVersion(
     );
   }
 
-  const windowsEnv = target.windowsEnv;
-  const versions = archVersions[windowsEnv];
+  const msystem = target.msystem;
+  const versions = archVersions[msystem];
 
   if (!versions) {
     throw new Error(
-      `The environment "${windowsEnv}" is not supported or implemented for Windows ${target.arch}.`,
+      `The environment "${msystem}" is not supported or implemented for Windows ${target.arch}.`,
     );
   }
 

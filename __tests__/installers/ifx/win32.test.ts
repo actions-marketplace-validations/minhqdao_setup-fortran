@@ -10,7 +10,7 @@ import {
   Arch,
   Compiler,
   OS,
-  WindowsEnv,
+  Msystem,
   type Target,
 } from "../../../src/types";
 
@@ -41,7 +41,7 @@ describe("installWin32 (ifx)", () => {
     os: OS.Windows,
     osVersion: "10.0.19045",
     arch: Arch.X64,
-    windowsEnv: WindowsEnv.Native,
+    msystem: Msystem.Native,
   };
 
   beforeEach(() => {

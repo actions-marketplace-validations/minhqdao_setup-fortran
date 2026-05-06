@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as path from "path";
 import * as fs from "fs";
-import { Arch, LATEST, WindowsEnv, type Target } from "../../types";
+import { Arch, LATEST, Msystem, type Target } from "../../types";
 import { resolveWindowsVersion } from "../../resolve_version";
 import { setupMSYS2 } from "../../setup_msys2";
 
@@ -20,7 +20,7 @@ import { setupMSYS2 } from "../../setup_msys2";
 //   upstream closely (verified at 0.63.0).
 const SUPPORTED_VERSIONS = {
   [Arch.X64]: {
-    [WindowsEnv.Native]: [
+    [Msystem.Native]: [
       "0.63.0",
       "0.62.0",
       "0.61.0",
@@ -29,25 +29,25 @@ const SUPPORTED_VERSIONS = {
       "0.58.0",
       "0.57.0",
     ],
-    [WindowsEnv.UCRT64]: [LATEST],
-    [WindowsEnv.Clang64]: [LATEST],
+    [Msystem.UCRT64]: [LATEST],
+    [Msystem.Clang64]: [LATEST],
   },
   [Arch.ARM64]: {
-    [WindowsEnv.Native]: undefined,
-    [WindowsEnv.UCRT64]: undefined,
-    [WindowsEnv.Clang64]: undefined,
+    [Msystem.Native]: undefined,
+    [Msystem.UCRT64]: undefined,
+    [Msystem.Clang64]: undefined,
   },
 } as const satisfies Record<
   Arch,
-  Record<WindowsEnv, readonly string[] | undefined>
+  Record<Msystem, readonly string[] | undefined>
 >;
 
 export async function installWin32(target: Target): Promise<string> {
-  switch (target.windowsEnv) {
-    case WindowsEnv.Native:
+  switch (target.msystem) {
+    case Msystem.Native:
       return await installConda(target);
-    case WindowsEnv.UCRT64:
-    case WindowsEnv.Clang64:
+    case Msystem.UCRT64:
+    case Msystem.Clang64:
       return await installMSYS2(target);
   }
 }
@@ -156,15 +156,15 @@ async function installConda(target: Target): Promise<string> {
 }
 
 // Installs lfortran via MSYS2 (rolling release).
-// The binary lives in C:\msys64\<windowsEnv>\bin\lfortran.exe.
+// The binary lives in C:\msys64\<msystem>\bin\lfortran.exe.
 async function installMSYS2(target: Target): Promise<string> {
   core.info(
-    `Installing LFortran on Windows (MSYS2/${target.windowsEnv}, rolling release)...`,
+    `Installing LFortran on Windows (MSYS2/${target.msystem}, rolling release)...`,
   );
 
-  await setupMSYS2(target.windowsEnv, ["lfortran"]);
+  await setupMSYS2(target.msystem, ["lfortran"]);
 
-  const msysBin = path.join("C:\\msys64", target.windowsEnv, "bin");
+  const msysBin = path.join("C:\\msys64", target.msystem, "bin");
   const lfortranExe = path.join(msysBin, "lfortran.exe");
 
   core.addPath(msysBin);
@@ -173,13 +173,13 @@ async function installMSYS2(target: Target): Promise<string> {
   core.exportVariable("FPM_FC", lfortranExe);
   core.exportVariable(
     "LFORTRAN_OMP_LIB_DIR",
-    path.join("C:\\msys64", target.windowsEnv, "lib"),
+    path.join("C:\\msys64", target.msystem, "lib"),
   );
-  core.exportVariable("WINDOWS_ENV", target.windowsEnv);
+  core.exportVariable("WINDOWS_ENV", target.msystem);
 
   const resolvedVersion = await resolveInstalledVersion(lfortranExe);
   core.info(
-    `LFortran ${resolvedVersion} installed successfully on Windows (MSYS2/${target.windowsEnv}).`,
+    `LFortran ${resolvedVersion} installed successfully on Windows (MSYS2/${target.msystem}).`,
   );
   return resolvedVersion;
 }

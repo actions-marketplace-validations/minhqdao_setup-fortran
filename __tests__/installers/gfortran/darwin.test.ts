@@ -5,7 +5,7 @@ import {
   Arch,
   Compiler,
   OS,
-  WindowsEnv,
+  Msystem,
   type Target,
 } from "../../../src/types";
 
@@ -24,7 +24,7 @@ describe("installDarwin (gfortran)", () => {
     os: OS.MacOS,
     osVersion: "13",
     arch: Arch.X64,
-    windowsEnv: WindowsEnv.Native,
+    msystem: Msystem.Native,
   };
 
   beforeEach(() => {

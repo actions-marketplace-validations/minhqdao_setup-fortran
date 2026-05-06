@@ -4,13 +4,13 @@ author: minhqdao
 
 inputs:
   compiler:
-    description: Fortran compiler to install. Defaults to `gfortran``.
+    description: Fortran compiler to install. Defaults to `gfortran`.
     required: false
     default: gfortran
   version:
     description: Compiler version to install. Defaults to the latest version.
     required: false
-  windows-env:
+  msystem:
     description: Windows environment to use. Defaults to `native`. Ignored on
       non-Windows runners.
     required: false

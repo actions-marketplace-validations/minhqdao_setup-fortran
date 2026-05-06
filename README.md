@@ -14,7 +14,7 @@ A GitHub Action to install and configure Fortran compilers across Linux, macOS, 
 |-------|-------------|---------|
 | `compiler` | Compiler to install (`gfortran`, `ifx`, `ifort`, `nvfortran`, `aocc`, `lfortran`, `flang`) | `gfortran` |
 | `version` | Compiler version to install | `latest` |
-| `windows-env` | Windows environment (`native`, `ucrt64`, `clang64`) | `native` |
+| `msystem` | MSYS2 subsystem (`native`, `ucrt64`, `clang64`) | `native` |
 
 ## Compiler support
 
@@ -240,7 +240,7 @@ jobs:
 - uses: minhqdao/setup-fortran@v1
   with:
     compiler: lfortran
-    windows-env: ucrt64
+    msystem: ucrt64
 ```
 
 ## Outputs

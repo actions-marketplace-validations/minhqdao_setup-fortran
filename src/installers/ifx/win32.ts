@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as cache from "@actions/cache";
 import * as tc from "@actions/tool-cache";
-import { Arch, OS, WindowsEnv, type Target } from "../../types";
+import { Arch, OS, Msystem, type Target } from "../../types";
 import { resolveWindowsVersion } from "../../resolve_version";
 import * as fs from "fs";
 import * as os from "os";
@@ -104,16 +104,16 @@ const IFX_RELEASES = [
 
 const SUPPORTED_VERSIONS = {
   [Arch.X64]: {
-    [WindowsEnv.Native]: IFX_RELEASES.map((r) => r.version),
-    [WindowsEnv.UCRT64]: undefined,
-    [WindowsEnv.Clang64]: undefined,
+    [Msystem.Native]: IFX_RELEASES.map((r) => r.version),
+    [Msystem.UCRT64]: undefined,
+    [Msystem.Clang64]: undefined,
   },
   [Arch.ARM64]: {
-    [WindowsEnv.Native]: undefined,
-    [WindowsEnv.UCRT64]: undefined,
-    [WindowsEnv.Clang64]: undefined,
+    [Msystem.Native]: undefined,
+    [Msystem.UCRT64]: undefined,
+    [Msystem.Clang64]: undefined,
   },
-} satisfies Record<Arch, Record<WindowsEnv, readonly string[] | undefined>>;
+} satisfies Record<Arch, Record<Msystem, readonly string[] | undefined>>;
 
 const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
 const SETVARS_BAT = `${ONEAPI_ROOT}\\setvars.bat`;

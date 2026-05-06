@@ -2,7 +2,7 @@ import * as exec from "@actions/exec";
 import * as core from "@actions/core";
 import * as path from "path";
 import * as fs from "fs";
-import { Compiler, LATEST, OS, WindowsEnv, type Latest } from "./types";
+import { Compiler, LATEST, OS, Msystem, type Latest } from "./types";
 
 interface CompilerFlags {
   module: string[];
@@ -95,9 +95,9 @@ async function run(): Promise<void> {
     }
 
     const flangVersion = parseFlangVersion(process.env.FLANG_VERSION);
-    const windowsEnv = process.env.WINDOWS_ENV as WindowsEnv | undefined;
-    const isUCRT64 = windowsEnv === WindowsEnv.UCRT64;
-    const isMSYS2 = isUCRT64 || windowsEnv === WindowsEnv.Clang64;
+    const msystem = process.env.WINDOWS_ENV as Msystem | undefined;
+    const isUCRT64 = msystem === Msystem.UCRT64;
+    const isMSYS2 = isUCRT64 || msystem === Msystem.Clang64;
 
     const rawPlatform = process.platform;
     if (!Object.values(OS).includes(rawPlatform as OS)) {

@@ -8,7 +8,7 @@ import {
   Arch,
   Compiler,
   OS,
-  WindowsEnv,
+  Msystem,
   type Target,
 } from "../../../src/types";
 
@@ -36,7 +36,7 @@ describe("installWin32 (ifort)", () => {
     os: OS.Windows,
     osVersion: "2022",
     arch: Arch.X64,
-    windowsEnv: WindowsEnv.Native,
+    msystem: Msystem.Native,
   };
 
   beforeEach(() => {

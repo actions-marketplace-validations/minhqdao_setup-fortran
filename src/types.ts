@@ -22,12 +22,12 @@ export const Arch = {
 } as const;
 export type Arch = (typeof Arch)[keyof typeof Arch];
 
-export const WindowsEnv = {
+export const Msystem = {
   Native: "native",
   UCRT64: "ucrt64",
   Clang64: "clang64",
 } as const;
-export type WindowsEnv = (typeof WindowsEnv)[keyof typeof WindowsEnv];
+export type Msystem = (typeof Msystem)[keyof typeof Msystem];
 
 export interface Target {
   compiler: Compiler;
@@ -35,7 +35,7 @@ export interface Target {
   os: OS;
   osVersion: string;
   arch: Arch;
-  windowsEnv: WindowsEnv;
+  msystem: Msystem;
 }
 
 export const LATEST = "latest" as const;

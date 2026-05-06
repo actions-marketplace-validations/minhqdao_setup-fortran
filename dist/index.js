@@ -90180,7 +90180,7 @@ const Arch = {
     X64: "x64",
     ARM64: "arm64",
 };
-const WindowsEnv = {
+const Msystem = {
     Native: "native",
     UCRT64: "ucrt64",
     Clang64: "clang64",
@@ -90194,7 +90194,7 @@ const LATEST = "latest";
 const DEFAULTS = {
     compiler: Compiler.GFortran,
     version: LATEST,
-    windowsEnv: WindowsEnv.Native,
+    msystem: Msystem.Native,
 };
 function detectOS() {
     switch (process.platform) {
@@ -90269,17 +90269,17 @@ function parseCompiler(raw) {
         return val;
     throw new Error(`Unknown compiler "${raw}". Valid options: ${valid.join(", ")}`);
 }
-function parseWindowsEnv(raw) {
-    const valid = Object.values(WindowsEnv);
+function parseMsystem(raw) {
+    const valid = Object.values(Msystem);
     const val = raw.toLowerCase().trim();
     if (valid.includes(val))
         return val;
-    throw new Error(`Unknown windows-env "${raw}". Valid options: ${valid.join(", ")}`);
+    throw new Error(`Unknown msystem "${raw}". Valid options: ${valid.join(", ")}`);
 }
 function parseInputs() {
     const rawCompiler = core.getInput("compiler").trim() || DEFAULTS.compiler;
     const rawVersion = core.getInput("version").trim() || DEFAULTS.version;
-    const rawWinEnv = core.getInput("windows-env").trim();
+    const rawMsystem = core.getInput("msystem").trim();
     const compiler = parseCompiler(rawCompiler);
     const detectedOS = detectOS();
     const target = {
@@ -90288,7 +90288,7 @@ function parseInputs() {
         os: detectedOS,
         osVersion: process.env.ImageOS ?? external_os_.release(),
         arch: detectArch(),
-        windowsEnv: rawWinEnv ? parseWindowsEnv(rawWinEnv) : DEFAULTS.windowsEnv,
+        msystem: rawMsystem ? parseMsystem(rawMsystem) : DEFAULTS.msystem,
     };
     return target;
 }
@@ -90335,10 +90335,10 @@ function resolveWindowsVersion(target, supportedVersions, { matchMajorIfPatch = 
     if (!archVersions) {
         throw new Error(`Architecture "${target.arch}" is not supported for ${target.compiler} on Windows.`);
     }
-    const windowsEnv = target.windowsEnv;
-    const versions = archVersions[windowsEnv];
+    const msystem = target.msystem;
+    const versions = archVersions[msystem];
     if (!versions) {
-        throw new Error(`The environment "${windowsEnv}" is not supported or implemented for Windows ${target.arch}.`);
+        throw new Error(`The environment "${msystem}" is not supported or implemented for Windows ${target.arch}.`);
     }
     return resolveVersion(target, { [target.arch]: versions }, { matchMajorIfPatch: matchMajorIfPatch });
 }
@@ -90637,33 +90637,31 @@ var tool_cache = __nccwpck_require__(3472);
 
 const MSYS2_ROOT = "C:\\msys64";
 const PKG_PREFIX = {
-    [WindowsEnv.UCRT64]: "mingw-w64-ucrt-x86_64",
-    [WindowsEnv.Clang64]: "mingw-w64-clang-x86_64",
-    [WindowsEnv.Native]: undefined,
+    [Msystem.UCRT64]: "mingw-w64-ucrt-x86_64",
+    [Msystem.Clang64]: "mingw-w64-clang-x86_64",
+    [Msystem.Native]: undefined,
 };
-async function setupMSYS2(windowsEnv, packages) {
+async function setupMSYS2(msystem, packages) {
     if (packages.length === 0)
         return;
-    const pkgList = packages
-        .map((pkg) => msys2PkgName(windowsEnv, pkg))
-        .join(" ");
-    core.info(`Installing MSYS2 packages (${windowsEnv}): ${pkgList}`);
+    const pkgList = packages.map((pkg) => msys2PkgName(msystem, pkg)).join(" ");
+    core.info(`Installing MSYS2 packages (${msystem}): ${pkgList}`);
     await exec.exec("C:\\msys64\\usr\\bin\\bash.exe", [
         "-lc",
         `pacman -S --noconfirm --needed ${pkgList}`,
     ]);
-    const msysRoot = external_path_.join(MSYS2_ROOT, windowsEnv);
+    const msysRoot = external_path_.join(MSYS2_ROOT, msystem);
     const msysBin = external_path_.join(msysRoot, "bin");
     const msysLib = external_path_.join(msysRoot, "lib");
     core.addPath(msysBin);
-    core.exportVariable("MSYSTEM", windowsEnv.toUpperCase());
+    core.exportVariable("MSYSTEM", msystem.toUpperCase());
     core.exportVariable("MSYS2_PATH_TYPE", "inherit");
     core.exportVariable("PKG_CONFIG_PATH", external_path_.join(msysLib, "pkgconfig"));
 }
-function msys2PkgName(windowsEnv, pkg) {
-    const prefix = PKG_PREFIX[windowsEnv];
+function msys2PkgName(msystem, pkg) {
+    const prefix = PKG_PREFIX[msystem];
     if (!prefix) {
-        throw new Error(`No MSYS2 package prefix known for environment: ${windowsEnv}`);
+        throw new Error(`No MSYS2 package prefix known for environment: ${msystem}`);
     }
     return `${prefix}-${pkg}`;
 }
@@ -90706,27 +90704,27 @@ const GCC_RELEASES = [
 ];
 const win32_SUPPORTED_VERSIONS = {
     [Arch.X64]: {
-        [WindowsEnv.Native]: GCC_RELEASES.map((r) => r.version),
-        [WindowsEnv.UCRT64]: [LATEST],
-        [WindowsEnv.Clang64]: undefined,
+        [Msystem.Native]: GCC_RELEASES.map((r) => r.version),
+        [Msystem.UCRT64]: [LATEST],
+        [Msystem.Clang64]: undefined,
     },
     [Arch.ARM64]: {
-        [WindowsEnv.Native]: undefined,
-        [WindowsEnv.UCRT64]: undefined,
-        [WindowsEnv.Clang64]: undefined,
+        [Msystem.Native]: undefined,
+        [Msystem.UCRT64]: undefined,
+        [Msystem.Clang64]: undefined,
     },
 };
 async function installWin32(target) {
     const version = resolveWindowsVersion(target, win32_SUPPORTED_VERSIONS);
-    switch (target.windowsEnv) {
-        case WindowsEnv.Native:
+    switch (target.msystem) {
+        case Msystem.Native:
             return await installNative(target, version);
-        case WindowsEnv.UCRT64:
+        case Msystem.UCRT64:
             return await installMSYS2(target);
-        case WindowsEnv.Clang64:
+        case Msystem.Clang64:
             throw new Error(`Clang/LLVM's clang-cl does not include gfortran and is not supported by this installer. ` +
-                `Please use the "native" WindowsEnv to install the latest gfortran via conda-forge, or ` +
-                `use MSYS2 with WindowsEnv "ucrt64" for a rolling-release version of gfortran.`);
+                `Please use the "native" msystem to install the latest gfortran via conda-forge, or ` +
+                `use MSYS2 with msystem "ucrt64" for a rolling-release version of gfortran.`);
     }
 }
 async function installNative(target, version) {
@@ -90735,7 +90733,7 @@ async function installNative(target, version) {
         throw new Error(`Unsupported GFortran version: ${version}`);
     }
     const downloadUrl = release.url;
-    let toolRoot = tool_cache.find(`gfortran-${target.windowsEnv}`, version, target.arch);
+    let toolRoot = tool_cache.find(`gfortran-${target.msystem}`, version, target.arch);
     if (!toolRoot) {
         core.info(`Downloading GFortran ${version} from ${downloadUrl}`);
         const downloadPath = await tool_cache.downloadTool(downloadUrl);
@@ -90743,7 +90741,7 @@ async function installNative(target, version) {
         const extractPath = await tool_cache.extractZip(downloadPath);
         const actualToolDir = external_path_.join(extractPath, "mingw64");
         core.info(`Caching GFortran ${version} in ${actualToolDir}...`);
-        toolRoot = await tool_cache.cacheDir(actualToolDir, `gfortran-${target.windowsEnv}`, version, target.arch);
+        toolRoot = await tool_cache.cacheDir(actualToolDir, `gfortran-${target.msystem}`, version, target.arch);
     }
     const binPath = external_path_.join(toolRoot, "bin");
     core.addPath(binPath);
@@ -90762,8 +90760,8 @@ async function installNative(target, version) {
     return await win32_resolveInstalledVersion();
 }
 async function installMSYS2(target) {
-    await setupMSYS2(target.windowsEnv, ["gcc-fortran"]);
-    const msysBin = external_path_.join("C:\\msys64", target.windowsEnv, "bin");
+    await setupMSYS2(target.msystem, ["gcc-fortran"]);
+    const msysBin = external_path_.join("C:\\msys64", target.msystem, "bin");
     const gfortranPath = external_path_.join(msysBin, "gfortran.exe");
     const gccPath = external_path_.join(msysBin, "gcc.exe");
     const gxxPath = external_path_.join(msysBin, "g++.exe");
@@ -91044,14 +91042,14 @@ const IFX_RELEASES = [
 ];
 const ifx_win32_SUPPORTED_VERSIONS = {
     [Arch.X64]: {
-        [WindowsEnv.Native]: IFX_RELEASES.map((r) => r.version),
-        [WindowsEnv.UCRT64]: undefined,
-        [WindowsEnv.Clang64]: undefined,
+        [Msystem.Native]: IFX_RELEASES.map((r) => r.version),
+        [Msystem.UCRT64]: undefined,
+        [Msystem.Clang64]: undefined,
     },
     [Arch.ARM64]: {
-        [WindowsEnv.Native]: undefined,
-        [WindowsEnv.UCRT64]: undefined,
-        [WindowsEnv.Clang64]: undefined,
+        [Msystem.Native]: undefined,
+        [Msystem.UCRT64]: undefined,
+        [Msystem.Clang64]: undefined,
     },
 };
 const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
@@ -91471,14 +91469,14 @@ const win32_IFORT_RELEASES = [
 ];
 const ifort_win32_SUPPORTED_VERSIONS = {
     [Arch.X64]: {
-        [WindowsEnv.Native]: win32_IFORT_RELEASES.map((r) => r.version),
-        [WindowsEnv.UCRT64]: undefined,
-        [WindowsEnv.Clang64]: undefined,
+        [Msystem.Native]: win32_IFORT_RELEASES.map((r) => r.version),
+        [Msystem.UCRT64]: undefined,
+        [Msystem.Clang64]: undefined,
     },
     [Arch.ARM64]: {
-        [WindowsEnv.Native]: undefined,
-        [WindowsEnv.UCRT64]: undefined,
-        [WindowsEnv.Clang64]: undefined,
+        [Msystem.Native]: undefined,
+        [Msystem.UCRT64]: undefined,
+        [Msystem.Clang64]: undefined,
     },
 };
 const win32_ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
@@ -92329,14 +92327,14 @@ async function flang_darwin_resolveInstalledVersion(flangBin) {
 // are validated by extracting the major and checking it against this table.
 const flang_win32_SUPPORTED_VERSIONS = {
     [Arch.X64]: {
-        [WindowsEnv.Native]: ["22"],
-        [WindowsEnv.UCRT64]: [LATEST],
-        [WindowsEnv.Clang64]: [LATEST],
+        [Msystem.Native]: ["22"],
+        [Msystem.UCRT64]: [LATEST],
+        [Msystem.Clang64]: [LATEST],
     },
     [Arch.ARM64]: {
-        [WindowsEnv.Native]: ["22", "21", "20"],
-        [WindowsEnv.UCRT64]: undefined,
-        [WindowsEnv.Clang64]: undefined,
+        [Msystem.Native]: ["22", "21", "20"],
+        [Msystem.UCRT64]: undefined,
+        [Msystem.Clang64]: undefined,
     },
 };
 // Windows installer suffix per arch, as used in official LLVM GitHub releases.
@@ -92410,11 +92408,11 @@ async function setupMsvcLibs(arch) {
     core.exportVariable("LIB", existing ? `${libDirs};${existing}` : libDirs);
 }
 async function flang_win32_installWin32(target) {
-    switch (target.windowsEnv) {
-        case WindowsEnv.Native:
+    switch (target.msystem) {
+        case Msystem.Native:
             return await win32_installNative(target);
-        case WindowsEnv.UCRT64:
-        case WindowsEnv.Clang64:
+        case Msystem.UCRT64:
+        case Msystem.Clang64:
             return await win32_installMSYS2(target);
     }
 }
@@ -92477,8 +92475,8 @@ async function win32_installMSYS2(target) {
     const version = resolveWindowsVersion(target, flang_win32_SUPPORTED_VERSIONS);
     core.info(`Installing Flang ${version} on Windows (MSYS2/UCRT64, rolling release)...`);
     // The MSYS2 package for flang in the UCRT64 environment.
-    await setupMSYS2(target.windowsEnv, ["flang"]);
-    const msysRoot = external_path_.join("C:\\msys64", target.windowsEnv);
+    await setupMSYS2(target.msystem, ["flang"]);
+    const msysRoot = external_path_.join("C:\\msys64", target.msystem);
     const msysBin = external_path_.join(msysRoot, "bin");
     const flangExe = external_path_.join(msysBin, "flang.exe");
     const clangExe = external_path_.join(msysBin, "clang.exe");
@@ -92490,7 +92488,7 @@ async function win32_installMSYS2(target) {
     core.exportVariable("FPM_FC", flangExe);
     core.exportVariable("FPM_CC", clangExe);
     core.exportVariable("FPM_CXX", clangPPExe);
-    core.exportVariable("WINDOWS_ENV", target.windowsEnv);
+    core.exportVariable("WINDOWS_ENV", target.msystem);
     const resolvedVersion = await flang_win32_resolveInstalledVersion(flangExe);
     core.info(`Flang ${resolvedVersion} installed successfully via MSYS2.`);
     return resolvedVersion;
@@ -92760,7 +92758,7 @@ async function lfortran_darwin_resolveInstalledVersion(binaryPath) {
 //   upstream closely (verified at 0.63.0).
 const lfortran_win32_SUPPORTED_VERSIONS = {
     [Arch.X64]: {
-        [WindowsEnv.Native]: [
+        [Msystem.Native]: [
             "0.63.0",
             "0.62.0",
             "0.61.0",
@@ -92769,21 +92767,21 @@ const lfortran_win32_SUPPORTED_VERSIONS = {
             "0.58.0",
             "0.57.0",
         ],
-        [WindowsEnv.UCRT64]: [LATEST],
-        [WindowsEnv.Clang64]: [LATEST],
+        [Msystem.UCRT64]: [LATEST],
+        [Msystem.Clang64]: [LATEST],
     },
     [Arch.ARM64]: {
-        [WindowsEnv.Native]: undefined,
-        [WindowsEnv.UCRT64]: undefined,
-        [WindowsEnv.Clang64]: undefined,
+        [Msystem.Native]: undefined,
+        [Msystem.UCRT64]: undefined,
+        [Msystem.Clang64]: undefined,
     },
 };
 async function lfortran_win32_installWin32(target) {
-    switch (target.windowsEnv) {
-        case WindowsEnv.Native:
+    switch (target.msystem) {
+        case Msystem.Native:
             return await installConda(target);
-        case WindowsEnv.UCRT64:
-        case WindowsEnv.Clang64:
+        case Msystem.UCRT64:
+        case Msystem.Clang64:
             return await lfortran_win32_installMSYS2(target);
     }
 }
@@ -92869,19 +92867,19 @@ async function installConda(target) {
     return resolvedVersion;
 }
 // Installs lfortran via MSYS2 (rolling release).
-// The binary lives in C:\msys64\<windowsEnv>\bin\lfortran.exe.
+// The binary lives in C:\msys64\<msystem>\bin\lfortran.exe.
 async function lfortran_win32_installMSYS2(target) {
-    core.info(`Installing LFortran on Windows (MSYS2/${target.windowsEnv}, rolling release)...`);
-    await setupMSYS2(target.windowsEnv, ["lfortran"]);
-    const msysBin = external_path_.join("C:\\msys64", target.windowsEnv, "bin");
+    core.info(`Installing LFortran on Windows (MSYS2/${target.msystem}, rolling release)...`);
+    await setupMSYS2(target.msystem, ["lfortran"]);
+    const msysBin = external_path_.join("C:\\msys64", target.msystem, "bin");
     const lfortranExe = external_path_.join(msysBin, "lfortran.exe");
     core.addPath(msysBin);
     core.exportVariable("FC", lfortranExe);
     core.exportVariable("FPM_FC", lfortranExe);
-    core.exportVariable("LFORTRAN_OMP_LIB_DIR", external_path_.join("C:\\msys64", target.windowsEnv, "lib"));
-    core.exportVariable("WINDOWS_ENV", target.windowsEnv);
+    core.exportVariable("LFORTRAN_OMP_LIB_DIR", external_path_.join("C:\\msys64", target.msystem, "lib"));
+    core.exportVariable("WINDOWS_ENV", target.msystem);
     const resolvedVersion = await lfortran_win32_resolveInstalledVersion(lfortranExe);
-    core.info(`LFortran ${resolvedVersion} installed successfully on Windows (MSYS2/${target.windowsEnv}).`);
+    core.info(`LFortran ${resolvedVersion} installed successfully on Windows (MSYS2/${target.msystem}).`);
     return resolvedVersion;
 }
 async function lfortran_win32_resolveInstalledVersion(binaryPath) {
@@ -92932,7 +92930,7 @@ async function run() {
         core.info(`OS Version: ${target.osVersion}`);
         core.info(`Arch      : ${target.arch}`);
         if (target.os === OS.Windows) {
-            core.info(`Windows env : ${target.windowsEnv}`);
+            core.info(`Windows env : ${target.msystem}`);
         }
         let installedVersion;
         switch (target.compiler) {

@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as path from "path";
 import * as tc from "@actions/tool-cache";
-import { Arch, LATEST, WindowsEnv, type Target } from "../../types";
+import { Arch, LATEST, Msystem, type Target } from "../../types";
 import { resolveWindowsVersion } from "../../resolve_version";
 import { setupMSYS2 } from "../../setup_msys2";
 
@@ -37,33 +37,33 @@ const GCC_RELEASES = [
 
 const SUPPORTED_VERSIONS = {
   [Arch.X64]: {
-    [WindowsEnv.Native]: GCC_RELEASES.map((r) => r.version),
-    [WindowsEnv.UCRT64]: [LATEST],
-    [WindowsEnv.Clang64]: undefined,
+    [Msystem.Native]: GCC_RELEASES.map((r) => r.version),
+    [Msystem.UCRT64]: [LATEST],
+    [Msystem.Clang64]: undefined,
   },
   [Arch.ARM64]: {
-    [WindowsEnv.Native]: undefined,
-    [WindowsEnv.UCRT64]: undefined,
-    [WindowsEnv.Clang64]: undefined,
+    [Msystem.Native]: undefined,
+    [Msystem.UCRT64]: undefined,
+    [Msystem.Clang64]: undefined,
   },
 } as const satisfies Record<
   Arch,
-  Record<WindowsEnv, readonly string[] | undefined>
+  Record<Msystem, readonly string[] | undefined>
 >;
 
 export async function installWin32(target: Target): Promise<string> {
   const version = resolveWindowsVersion(target, SUPPORTED_VERSIONS);
 
-  switch (target.windowsEnv) {
-    case WindowsEnv.Native:
+  switch (target.msystem) {
+    case Msystem.Native:
       return await installNative(target, version);
-    case WindowsEnv.UCRT64:
+    case Msystem.UCRT64:
       return await installMSYS2(target);
-    case WindowsEnv.Clang64:
+    case Msystem.Clang64:
       throw new Error(
         `Clang/LLVM's clang-cl does not include gfortran and is not supported by this installer. ` +
-          `Please use the "native" WindowsEnv to install the latest gfortran via conda-forge, or ` +
-          `use MSYS2 with WindowsEnv "ucrt64" for a rolling-release version of gfortran.`,
+          `Please use the "native" msystem to install the latest gfortran via conda-forge, or ` +
+          `use MSYS2 with msystem "ucrt64" for a rolling-release version of gfortran.`,
       );
   }
 }
@@ -75,7 +75,7 @@ async function installNative(target: Target, version: string): Promise<string> {
   }
   const downloadUrl = release.url;
 
-  let toolRoot = tc.find(`gfortran-${target.windowsEnv}`, version, target.arch);
+  let toolRoot = tc.find(`gfortran-${target.msystem}`, version, target.arch);
 
   if (!toolRoot) {
     core.info(`Downloading GFortran ${version} from ${downloadUrl}`);
@@ -89,7 +89,7 @@ async function installNative(target: Target, version: string): Promise<string> {
     core.info(`Caching GFortran ${version} in ${actualToolDir}...`);
     toolRoot = await tc.cacheDir(
       actualToolDir,
-      `gfortran-${target.windowsEnv}`,
+      `gfortran-${target.msystem}`,
       version,
       target.arch,
     );
@@ -116,9 +116,9 @@ async function installNative(target: Target, version: string): Promise<string> {
 }
 
 async function installMSYS2(target: Target): Promise<string> {
-  await setupMSYS2(target.windowsEnv, ["gcc-fortran"]);
+  await setupMSYS2(target.msystem, ["gcc-fortran"]);
 
-  const msysBin = path.join("C:\\msys64", target.windowsEnv, "bin");
+  const msysBin = path.join("C:\\msys64", target.msystem, "bin");
   const gfortranPath = path.join(msysBin, "gfortran.exe");
   const gccPath = path.join(msysBin, "gcc.exe");
   const gxxPath = path.join(msysBin, "g++.exe");

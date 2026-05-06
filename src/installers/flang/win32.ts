@@ -3,7 +3,7 @@ import * as exec from "@actions/exec";
 import * as path from "path";
 import * as fs from "fs";
 import * as tc from "@actions/tool-cache";
-import { Arch, LATEST, WindowsEnv, type Target } from "../../types";
+import { Arch, LATEST, Msystem, type Target } from "../../types";
 import {
   resolveWindowsVersion,
   parseMajorOrPatch,
@@ -28,18 +28,18 @@ import { setupMSYS2 } from "../../setup_msys2";
 // are validated by extracting the major and checking it against this table.
 const SUPPORTED_VERSIONS = {
   [Arch.X64]: {
-    [WindowsEnv.Native]: ["22"],
-    [WindowsEnv.UCRT64]: [LATEST],
-    [WindowsEnv.Clang64]: [LATEST],
+    [Msystem.Native]: ["22"],
+    [Msystem.UCRT64]: [LATEST],
+    [Msystem.Clang64]: [LATEST],
   },
   [Arch.ARM64]: {
-    [WindowsEnv.Native]: ["22", "21", "20"],
-    [WindowsEnv.UCRT64]: undefined,
-    [WindowsEnv.Clang64]: undefined,
+    [Msystem.Native]: ["22", "21", "20"],
+    [Msystem.UCRT64]: undefined,
+    [Msystem.Clang64]: undefined,
   },
 } as const satisfies Record<
   Arch,
-  Record<WindowsEnv, readonly string[] | undefined>
+  Record<Msystem, readonly string[] | undefined>
 >;
 
 // Windows installer suffix per arch, as used in official LLVM GitHub releases.
@@ -139,11 +139,11 @@ async function setupMsvcLibs(arch: Arch): Promise<void> {
 }
 
 export async function installWin32(target: Target): Promise<string> {
-  switch (target.windowsEnv) {
-    case WindowsEnv.Native:
+  switch (target.msystem) {
+    case Msystem.Native:
       return await installNative(target);
-    case WindowsEnv.UCRT64:
-    case WindowsEnv.Clang64:
+    case Msystem.UCRT64:
+    case Msystem.Clang64:
       return await installMSYS2(target);
   }
 }
@@ -234,9 +234,9 @@ async function installMSYS2(target: Target): Promise<string> {
   );
 
   // The MSYS2 package for flang in the UCRT64 environment.
-  await setupMSYS2(target.windowsEnv, ["flang"]);
+  await setupMSYS2(target.msystem, ["flang"]);
 
-  const msysRoot = path.join("C:\\msys64", target.windowsEnv);
+  const msysRoot = path.join("C:\\msys64", target.msystem);
   const msysBin = path.join(msysRoot, "bin");
   const flangExe = path.join(msysBin, "flang.exe");
   const clangExe = path.join(msysBin, "clang.exe");
@@ -250,7 +250,7 @@ async function installMSYS2(target: Target): Promise<string> {
   core.exportVariable("FPM_FC", flangExe);
   core.exportVariable("FPM_CC", clangExe);
   core.exportVariable("FPM_CXX", clangPPExe);
-  core.exportVariable("WINDOWS_ENV", target.windowsEnv);
+  core.exportVariable("WINDOWS_ENV", target.msystem);
 
   const resolvedVersion = await resolveInstalledVersion(flangExe);
   core.info(`Flang ${resolvedVersion} installed successfully via MSYS2.`);

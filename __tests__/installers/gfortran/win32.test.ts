@@ -7,7 +7,7 @@ import {
   Arch,
   Compiler,
   OS,
-  WindowsEnv,
+  Msystem,
   type Target,
 } from "../../../src/types";
 
@@ -30,7 +30,7 @@ describe("installWin32 (gfortran)", () => {
     os: OS.Windows,
     osVersion: "2022",
     arch: Arch.X64,
-    windowsEnv: WindowsEnv.Native,
+    msystem: Msystem.Native,
   };
 
   beforeEach(() => {
@@ -78,10 +78,10 @@ describe("installWin32 (gfortran)", () => {
 
   describe("MSYS2", () => {
     it("calls setupMSYS2 and exports variables", async () => {
-      const target = { ...baseTarget, version: "latest", windowsEnv: WindowsEnv.UCRT64 };
+      const target = { ...baseTarget, version: "latest", msystem: Msystem.UCRT64 };
       await installWin32(target);
 
-      expect(mockedSetupMSYS2).toHaveBeenCalledWith(WindowsEnv.UCRT64, ["gcc-fortran"]);
+      expect(mockedSetupMSYS2).toHaveBeenCalledWith(Msystem.UCRT64, ["gcc-fortran"]);
       expect(mockedExportVariable).toHaveBeenCalledWith("FC", expect.stringContaining("gfortran.exe"));
       expect(mockedExportVariable).toHaveBeenCalledWith("F77", expect.stringContaining("gfortran.exe"));
       expect(mockedExportVariable).toHaveBeenCalledWith("F90", expect.stringContaining("gfortran.exe"));
