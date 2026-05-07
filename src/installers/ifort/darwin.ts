@@ -76,7 +76,7 @@ export async function installDarwin(target: Target): Promise<string> {
   const cachePaths = [ONEAPI_ROOT];
 
   if (!fs.existsSync(ONEAPI_ROOT)) {
-    fs.mkdirSync(ONEAPI_ROOT, { recursive: true });
+    await exec.exec("sudo", ["mkdir", "-p", ONEAPI_ROOT]);
   }
 
   const cacheHit = await cache.restoreCache(cachePaths, cacheKey);

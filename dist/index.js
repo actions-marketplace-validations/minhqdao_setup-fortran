@@ -89845,7 +89845,7 @@ async function darwin_installDarwin(target) {
     const cacheKey = `ifort-darwin-${target.arch}-${version}`;
     const cachePaths = [darwin_ONEAPI_ROOT];
     if (!external_fs_.existsSync(darwin_ONEAPI_ROOT)) {
-        external_fs_.mkdirSync(darwin_ONEAPI_ROOT, { recursive: true });
+        await exec.exec("sudo", ["mkdir", "-p", darwin_ONEAPI_ROOT]);
     }
     const cacheHit = await cache.restoreCache(cachePaths, cacheKey);
     if (cacheHit) {
