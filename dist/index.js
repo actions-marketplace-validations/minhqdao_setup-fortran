@@ -89882,7 +89882,9 @@ async function darwin_installDarwin(target) {
         finally {
             // Always ensure the DMG is unmounted, even if the installation fails
             core.info("Unmounting DMG...");
-            await exec.exec("hdiutil", ["detach", mountPoint, "-force"]);
+            await exec.exec("hdiutil", ["detach", mountPoint, "-force"], {
+                ignoreReturnCode: true,
+            });
         }
     }
     core.info(`Sourcing ${SETVARS_SH} and exporting environment...`);
