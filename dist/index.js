@@ -88756,7 +88756,7 @@ var cache = __nccwpck_require__(5116);
 ;// CONCATENATED MODULE: ./src/resolve_version.ts
 
 
-function resolveVersion(target, supportedVersions, { matchMajorIfPatch = false } = {}) {
+function resolveVersion(target, supportedVersions, { matchMajorIfPatch = false, resolveMinorToLatestPatch = false, } = {}) {
     const versions = supportedVersions[target.arch];
     if (!versions) {
         throw new Error(`No supported versions found for ${target.compiler} on ` +
@@ -88768,16 +88768,27 @@ function resolveVersion(target, supportedVersions, { matchMajorIfPatch = false }
         throw new Error(`No supported versions found for ${target.compiler} on ` +
             `${target.os} (${target.arch}).`);
     }
-    // Try exact match first (covers Intel-style versions like "2025.1.0" and
-    // LLVM-style major-only entries like "22"). If that fails and the version
-    // looks like a full x.y.z patch, fall back to matching just the major —
-    // this allows users to enter "22.1.3" when the list contains "22".
     const versionList = versions;
     if (!versionList.includes(version)) {
+        // Try exact match first (covers Intel-style versions like "2025.1.0" and
+        // LLVM-style major-only entries like "22"). If that fails and the version
+        // looks like a full x.y.z patch, fall back to matching just the major —
+        // this allows users to enter "22.1.3" when the list contains "22".
         if (matchMajorIfPatch) {
             const major = parseMajorOrPatch(version).major;
             if (versionList.includes(major)) {
                 return version;
+            }
+        }
+        // When true, a minor-only version string in "YYYY.minor" format (e.g.
+        // "2025.2") is expanded to the latest known patch for that minor (e.g.
+        // "2025.2.1") by finding the first entry in the version list whose prefix
+        // matches "YYYY.minor.".
+        if (resolveMinorToLatestPatch && /^\d{4}\.\d+$/.test(version)) {
+            const prefix = `${version}.`;
+            const match = versionList.find((v) => v.startsWith(prefix));
+            if (match) {
+                return match;
             }
         }
         throw new Error(`${target.compiler} ${version} is not supported on ` +
@@ -88786,7 +88797,7 @@ function resolveVersion(target, supportedVersions, { matchMajorIfPatch = false }
     }
     return version;
 }
-function resolveWindowsVersion(target, supportedVersions, { matchMajorIfPatch = false } = {}) {
+function resolveWindowsVersion(target, supportedVersions, { matchMajorIfPatch = false, resolveMinorToLatestPatch = false, } = {}) {
     const archVersions = supportedVersions[target.arch];
     if (!archVersions) {
         throw new Error(`Architecture "${target.arch}" is not supported for ${target.compiler} on Windows.`);
@@ -88796,7 +88807,7 @@ function resolveWindowsVersion(target, supportedVersions, { matchMajorIfPatch = 
     if (!versions) {
         throw new Error(`The environment "${msystem}" is not supported or implemented for Windows ${target.arch}.`);
     }
-    return resolveVersion(target, { [target.arch]: versions }, { matchMajorIfPatch: matchMajorIfPatch });
+    return resolveVersion(target, { [target.arch]: versions }, { matchMajorIfPatch, resolveMinorToLatestPatch });
 }
 // Parses a version string into a major and an optional full patch version.
 //
@@ -89314,7 +89325,9 @@ const debian_SUPPORTED_VERSIONS = {
     [Arch.ARM64]: undefined,
 };
 async function debian_installDebian(target) {
-    const version = resolveVersion(target, debian_SUPPORTED_VERSIONS);
+    const version = resolveVersion(target, debian_SUPPORTED_VERSIONS, {
+        resolveMinorToLatestPatch: true,
+    });
     core.info(`Installing ifx ${version} on Linux (${target.arch})...`);
     const ONEAPI_ROOT = "/opt/intel/oneapi";
     const cacheKey = `oneapi-ifx-${version}`;
@@ -89529,7 +89542,9 @@ const ifx_win32_SUPPORTED_VERSIONS = {
 const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
 const SETVARS_BAT = `${ONEAPI_ROOT}\\setvars.bat`;
 async function win32_installWin32(target) {
-    const version = resolveWindowsVersion(target, ifx_win32_SUPPORTED_VERSIONS);
+    const version = resolveWindowsVersion(target, ifx_win32_SUPPORTED_VERSIONS, {
+        resolveMinorToLatestPatch: true,
+    });
     const release = IFX_RELEASES.find((r) => r.version === version);
     if (!release) {
         throw new Error(`No installer URL found for ifx ${version} on Windows. ` +

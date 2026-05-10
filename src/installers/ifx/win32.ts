@@ -119,7 +119,9 @@ const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
 const SETVARS_BAT = `${ONEAPI_ROOT}\\setvars.bat`;
 
 export async function installWin32(target: Target): Promise<string> {
-  const version = resolveWindowsVersion(target, SUPPORTED_VERSIONS);
+  const version = resolveWindowsVersion(target, SUPPORTED_VERSIONS, {
+    resolveMinorToLatestPatch: true,
+  });
 
   const release = IFX_RELEASES.find((r) => r.version === version);
   if (!release) {

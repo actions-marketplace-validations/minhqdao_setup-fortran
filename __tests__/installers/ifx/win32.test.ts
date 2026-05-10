@@ -87,6 +87,17 @@ describe("installWin32 (ifx)", () => {
     expect(cache.saveCache).toHaveBeenCalled();
   });
 
+  it("resolves 2025.3 to 2025.3.3 using resolveMinorToLatestPatch", async () => {
+    mockedRestoreCache.mockResolvedValue("cache-hit");
+    const target = { ...baseTarget, version: "2025.3" };
+    await installWin32(target);
+
+    expect(mockedRestoreCache).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringContaining("ifx-win32-x64-2025.3.3"),
+    );
+  });
+
   it("exports environment variables from setvars", async () => {
     mockedRestoreCache.mockResolvedValue("cache-hit");
 

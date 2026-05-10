@@ -40,7 +40,9 @@ const SUPPORTED_VERSIONS = {
 } as const satisfies Record<Arch, readonly string[] | undefined>;
 
 export async function installDebian(target: Target): Promise<string> {
-  const version = resolveVersion(target, SUPPORTED_VERSIONS);
+  const version = resolveVersion(target, SUPPORTED_VERSIONS, {
+    resolveMinorToLatestPatch: true,
+  });
   core.info(`Installing ifx ${version} on Linux (${target.arch})...`);
 
   const ONEAPI_ROOT = "/opt/intel/oneapi";
