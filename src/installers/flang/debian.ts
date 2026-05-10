@@ -76,7 +76,7 @@ export async function installDebian(target: Target): Promise<string> {
   await exec.exec("bash", [
     "-c",
     [
-      `curl -fsSL https://apt.llvm.org/llvm.sh`,
+      `curl -fsSL --retry 3 --retry-delay 15 https://apt.llvm.org/llvm.sh`,
       `| sudo bash -s -- ${version}`,
     ].join(" "),
   ]);
