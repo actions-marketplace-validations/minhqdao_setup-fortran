@@ -89291,7 +89291,6 @@ var external_fs_ = __nccwpck_require__(79896);
 
 
 
-// A clean list of supported base versions (YYYY.MINOR).
 // The first entry is used as the default when LATEST is requested.
 // ARM64 is not supported: Intel oneAPI does not provide Linux ARM64 packages.
 const debian_SUPPORTED_VERSIONS = {
@@ -89434,9 +89433,8 @@ async function debian_resolveInstalledVersion() {
 
 
 
-// Only versions with a known installer URL are listed. LATEST resolves to the
-// first entry. ARM64 is not supported: Intel oneAPI does not provide Windows
-// ARM64 packages.
+// Only versions with a known installer URL are listed.
+// LATEST resolves to the first entry.
 const IFX_RELEASES = [
     {
         version: "2026.0.0",
@@ -89956,7 +89954,7 @@ async function ifort_darwin_resolveInstalledVersion() {
 
 // ifort (Intel Fortran Compiler Classic) was discontinued in 2024.
 // Only legacy versions (2023 and earlier) are listed here.
-// LATEST resolves to the first entry (2023.2.1).
+// LATEST resolves to the first entry
 const win32_IFORT_RELEASES = [
     {
         version: "2021.13",
