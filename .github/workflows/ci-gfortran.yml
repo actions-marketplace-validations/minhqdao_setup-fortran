@@ -22,17 +22,7 @@ jobs:
       matrix:
         image:
           [
-            ubuntu-24.04,
-            ubuntu-22.04,
-            ubuntu-24.04-arm,
-            ubuntu-22.04-arm,
-            macos-26,
-            macos-26-intel,
-            macos-15,
-            macos-15-intel,
-            macos-14,
-            windows-2025,
-            windows-2022,
+            windows-2025-vs2026,
           ]
         toolchain:
           - { compiler: gfortran, version: "16" }
@@ -42,25 +32,8 @@ jobs:
           - { compiler: gfortran, version: "12" }
           - { compiler: gfortran, version: "11" }
         include:
-          - image: ubuntu-latest # no compiler and version specified, defaults to the latest gfortran version
-          - image: macos-latest # no compiler and version specified, defaults to the latest gfortran version
-          - image: windows-latest # no compiler and version specified, defaults to the latest gfortran version
-          - image: windows-2025
+          - image: windows-2025-vs2026
             toolchain: { compiler: gfortran, msystem: ucrt64 } # only latest version available from Pacman
-          - image: windows-2022
-            toolchain: { compiler: gfortran, msystem: ucrt64 } # only latest version available from Pacman
-        exclude:
-          - image: macos-26
-            toolchain: { compiler: gfortran, version: "16" }
-          - image: macos-26-intel
-            toolchain: { compiler: gfortran, version: "16" }
-          - image: macos-15
-            toolchain: { compiler: gfortran, version: "16" }
-          - image: macos-15-intel
-            toolchain: { compiler: gfortran, version: "16" }
-          - image: macos-14
-            toolchain: { compiler: gfortran, version: "16" }
-
     steps:
       - uses: actions/checkout@v6
 
