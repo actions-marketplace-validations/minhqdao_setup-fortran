@@ -109,9 +109,25 @@ export async function installWin32(target: Target): Promise<string> {
 
   // Create a temporary batch file to capture the environment variables from setvars.bat
   const batFile = path.join(os.tmpdir(), "setvars_ifort_dump.bat");
+
+  // Older ifort setvars.bat versions only know about VS2017/2019/2022.
+  // On runners with VS2026, we point VS2022INSTALLDIR at whatever VS is
+  // installed so setvars.bat can find it.
+  const ifortMinor = parseInt(version.split(".")[1], 10);
+  const needsVsWorkaround = ifortMinor < 12;
+
   fs.writeFileSync(
     batFile,
-    `@echo off\r\ncall "${SETVARS_BAT}" --force\r\nset\r\n`,
+    [
+      `@echo off`,
+      ...(needsVsWorkaround
+        ? [
+            `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -property installationPath\`) do set VS2022INSTALLDIR=%%i`,
+          ]
+        : []),
+      `call "${SETVARS_BAT}" --force`,
+      `set`,
+    ].join("\r\n"),
   );
 
   let envOutput = "";

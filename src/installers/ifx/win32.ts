@@ -156,10 +156,23 @@ export async function installWin32(target: Target): Promise<string> {
     await cache.saveCache(cachePaths, cacheKey);
   }
 
+  // Versions before 2024.0 don't know about VS2026 and need the vswhere workaround.
+  const [year, minor] = version.split(".").map(Number);
+  const needsVsWorkaround = year < 2024 || (year === 2024 && minor === 0);
+
   const batFile = path.join(os.tmpdir(), "setvars_and_dump.bat");
   fs.writeFileSync(
     batFile,
-    `@echo off\r\ncall "${SETVARS_BAT}" --force\r\nset\r\n`,
+    [
+      `@echo off`,
+      ...(needsVsWorkaround
+        ? [
+            `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -property installationPath\`) do set VS2022INSTALLDIR=%%i`,
+          ]
+        : []),
+      `call "${SETVARS_BAT}" --force`,
+      `set`,
+    ].join("\r\n"),
   );
 
   let envOutput = "";
@@ -179,7 +192,15 @@ export async function installWin32(target: Target): Promise<string> {
     if (
       /^(PATH|LIB|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)
     ) {
-      core.exportVariable(key, val);
+      if (key.toUpperCase() === "PATH") {
+        const filteredPath = val
+          .split(";")
+          .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"))
+          .join(";");
+        core.exportVariable("PATH", filteredPath);
+      } else {
+        core.exportVariable(key, val);
+      }
     }
   }
 

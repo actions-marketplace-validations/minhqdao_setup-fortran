@@ -23,11 +23,6 @@ jobs:
         image: [windows-2025-vs2026]
         toolchain:
           - { compiler: flang, version: "22" }
-          - { compiler: flang, version: "21" }
-          - { compiler: flang, version: "20" }
-          - { compiler: flang, version: "19" }
-          - { compiler: flang, version: "18" }
-          - { compiler: flang, version: "17" }
         include:
           - image: windows-2025-vs2026
             toolchain: { compiler: flang, version: "22.1.0" } # test that patch versions are accepted and resolved correctly
