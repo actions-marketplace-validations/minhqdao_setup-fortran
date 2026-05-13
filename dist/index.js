@@ -90059,7 +90059,16 @@ async function ifort_win32_installWin32(target) {
         const key = line.substring(0, eqIdx).trim();
         const val = line.substring(eqIdx + 1).trimEnd();
         if (/^(PATH|LIB|INCLUDE|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
-            core.exportVariable(key, val);
+            if (key.toUpperCase() === "PATH") {
+                const filteredPath = val
+                    .split(";")
+                    .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"))
+                    .join(";");
+                core.exportVariable("PATH", filteredPath);
+            }
+            else {
+                core.exportVariable(key, val);
+            }
         }
     }
     core.exportVariable("FC", "ifort");

@@ -134,7 +134,15 @@ export async function installWin32(target: Target): Promise<string> {
         key,
       )
     ) {
-      core.exportVariable(key, val);
+      if (key.toUpperCase() === "PATH") {
+        const filteredPath = val
+          .split(";")
+          .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"))
+          .join(";");
+        core.exportVariable("PATH", filteredPath);
+      } else {
+        core.exportVariable(key, val);
+      }
     }
   }
 
