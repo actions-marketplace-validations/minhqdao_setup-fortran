@@ -1,9 +1,10 @@
 name: gfortran
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  # pull_request:
 
 jobs:
   build:
@@ -20,10 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image:
-          [
-            windows-2025-vs2026,
-          ]
+        image: [windows-2025-vs2026]
         toolchain:
           - { compiler: gfortran, version: "16" }
           - { compiler: gfortran, version: "15" }

@@ -89566,7 +89566,7 @@ async function win32_installWin32(target) {
         core.info("Saving installation to cache...");
         await cache.saveCache(cachePaths, cacheKey);
     }
-    // Versions before 2024.0 don't know about VS2026 and need the vswhere workaround.
+    // 2024.0 and earlier versions don't know about VS2026 and need the vswhere workaround.
     const [year, minor] = version.split(".").map(Number);
     const needsVsWorkaround = year < 2024 || (year === 2024 && minor === 0);
     const batFile = external_path_default().join(external_os_.tmpdir(), "setvars_and_dump.bat");
@@ -89578,6 +89578,9 @@ async function win32_installWin32(target) {
             ]
             : []),
         `call "${SETVARS_BAT}" --force`,
+        // Explicitly add MSVC link.exe to PATH after setvars.bat runs.
+        `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -find "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe"\`) do set MSVC_LINK_DIR=%%~dpi`,
+        `if defined MSVC_LINK_DIR set PATH=%MSVC_LINK_DIR%;%PATH%`,
         `set`,
     ].join("\r\n"));
     let envOutput = "";
@@ -89595,16 +89598,7 @@ async function win32_installWin32(target) {
         const key = line.substring(0, eqIdx).trim();
         const val = line.substring(eqIdx + 1).trimEnd();
         if (/^(PATH|LIB|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
-            if (key.toUpperCase() === "PATH") {
-                const filteredPath = val
-                    .split(";")
-                    .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"))
-                    .join(";");
-                core.exportVariable("PATH", filteredPath);
-            }
-            else {
-                core.exportVariable(key, val);
-            }
+            core.exportVariable(key, val);
         }
     }
     core.exportVariable("FC", "ifx");
@@ -90077,6 +90071,9 @@ async function ifort_win32_installWin32(target) {
             ]
             : []),
         `call "${win32_SETVARS_BAT}" --force`,
+        // Explicitly add MSVC link.exe to PATH after setvars.bat runs.
+        `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -find "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe"\`) do set MSVC_LINK_DIR=%%~dpi`,
+        `if defined MSVC_LINK_DIR set PATH=%MSVC_LINK_DIR%;%PATH%`,
         `set`,
     ].join("\r\n"));
     let envOutput = "";
@@ -90094,16 +90091,7 @@ async function ifort_win32_installWin32(target) {
         const key = line.substring(0, eqIdx).trim();
         const val = line.substring(eqIdx + 1).trimEnd();
         if (/^(PATH|LIB|INCLUDE|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
-            if (key.toUpperCase() === "PATH") {
-                const filteredPath = val
-                    .split(";")
-                    .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"))
-                    .join(";");
-                core.exportVariable("PATH", filteredPath);
-            }
-            else {
-                core.exportVariable(key, val);
-            }
+            core.exportVariable(key, val);
         }
     }
     core.exportVariable("FC", "ifort");

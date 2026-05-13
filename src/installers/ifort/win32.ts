@@ -126,6 +126,9 @@ export async function installWin32(target: Target): Promise<string> {
           ]
         : []),
       `call "${SETVARS_BAT}" --force`,
+      // Explicitly add MSVC link.exe to PATH after setvars.bat runs.
+      `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -find "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe"\`) do set MSVC_LINK_DIR=%%~dpi`,
+      `if defined MSVC_LINK_DIR set PATH=%MSVC_LINK_DIR%;%PATH%`,
       `set`,
     ].join("\r\n"),
   );
@@ -150,15 +153,7 @@ export async function installWin32(target: Target): Promise<string> {
         key,
       )
     ) {
-      if (key.toUpperCase() === "PATH") {
-        const filteredPath = val
-          .split(";")
-          .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"))
-          .join(";");
-        core.exportVariable("PATH", filteredPath);
-      } else {
-        core.exportVariable(key, val);
-      }
+      core.exportVariable(key, val);
     }
   }
 

@@ -156,7 +156,7 @@ export async function installWin32(target: Target): Promise<string> {
     await cache.saveCache(cachePaths, cacheKey);
   }
 
-  // Versions before 2024.0 don't know about VS2026 and need the vswhere workaround.
+  // 2024.0 and earlier versions don't know about VS2026 and need the vswhere workaround.
   const [year, minor] = version.split(".").map(Number);
   const needsVsWorkaround = year < 2024 || (year === 2024 && minor === 0);
 
@@ -171,6 +171,9 @@ export async function installWin32(target: Target): Promise<string> {
           ]
         : []),
       `call "${SETVARS_BAT}" --force`,
+      // Explicitly add MSVC link.exe to PATH after setvars.bat runs.
+      `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -find "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe"\`) do set MSVC_LINK_DIR=%%~dpi`,
+      `if defined MSVC_LINK_DIR set PATH=%MSVC_LINK_DIR%;%PATH%`,
       `set`,
     ].join("\r\n"),
   );
@@ -192,15 +195,7 @@ export async function installWin32(target: Target): Promise<string> {
     if (
       /^(PATH|LIB|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)
     ) {
-      if (key.toUpperCase() === "PATH") {
-        const filteredPath = val
-          .split(";")
-          .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"))
-          .join(";");
-        core.exportVariable("PATH", filteredPath);
-      } else {
-        core.exportVariable(key, val);
-      }
+      core.exportVariable(key, val);
     }
   }
 
