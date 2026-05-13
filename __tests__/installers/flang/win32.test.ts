@@ -24,6 +24,23 @@ jest.mock("fs", () => ({
 }));
 
 describe("installWin32 (Flang)", () => {
+  beforeAll(() => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [{ tag_name: "llvmorg-22.1.0", prerelease: false }],
+    } as unknown as Response);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.useRealTimers();
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   const mockedExec = exec.exec as jest.MockedFunction<typeof exec.exec>;
   const mockedTc = tc as jest.Mocked<typeof tc>;
   const mockedFs = fs as jest.Mocked<typeof fs>;

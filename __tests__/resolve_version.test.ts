@@ -17,6 +17,23 @@ const SUPPORTED: Record<string, readonly string[]> = {
 };
 
 describe("resolveVersion", () => {
+  beforeAll(() => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [{ tag_name: "llvmorg-19.1.7", prerelease: false }],
+    } as unknown as Response);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.useRealTimers();
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   describe("when version is LATEST", () => {
     it("returns the first entry for x64", () => {
       const result = resolveVersion(baseTarget, SUPPORTED);
