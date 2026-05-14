@@ -153,7 +153,26 @@ export async function installWin32(target: Target): Promise<string> {
         key,
       )
     ) {
-      core.exportVariable(key, val);
+      if (key.toUpperCase() === "PATH") {
+        // Git's usr/bin contains a `link` that shadows MSVC's link.exe.
+        // Find MSVC link.exe directory from PATH itself and move it before
+        // Git's tools.
+        const parts = val.split(";");
+        const msvcBin = parts.find(
+          (p) =>
+            p.toLowerCase().includes("microsoft visual studio") &&
+            p.toLowerCase().includes("hostx64\\x64"),
+        );
+        const filtered = parts.filter(
+          (p) => !p.toLowerCase().includes("git\\usr\\bin"),
+        );
+        const final = msvcBin
+          ? [msvcBin, ...filtered.filter((p) => p !== msvcBin)]
+          : filtered;
+        core.exportVariable("PATH", final.join(";"));
+      } else {
+        core.exportVariable(key, val);
+      }
     }
   }
 
