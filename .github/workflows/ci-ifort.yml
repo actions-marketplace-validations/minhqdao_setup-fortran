@@ -45,15 +45,5 @@ jobs:
       - name: Verify installed version
         run: 'echo "Output: ${{ steps.setup.outputs.version }}"'
 
-      - name: Diagnose PATH and MSVC after setvars
-        shell: cmd
-        run: |
-          echo === MSVC_LINK_DIR ===
-          echo %MSVC_LINK_DIR%
-          echo === where link after export ===
-          where link
-          echo === PATH first 10 entries ===
-          echo %PATH:;=&echo.%
-
       - name: Run Integration Tests
         run: npm run integration-test
