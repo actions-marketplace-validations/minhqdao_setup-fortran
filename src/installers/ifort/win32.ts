@@ -107,28 +107,23 @@ export async function installWin32(target: Target): Promise<string> {
     await cache.saveCache(cachePaths, cacheKey);
   }
 
-  // Create a temporary batch file to capture the environment variables from setvars.bat
+  // Create a temporary batch file to capture the environment variables
   const batFile = path.join(os.tmpdir(), "setvars_ifort_dump.bat");
-
-  // Older ifort setvars.bat versions only know about VS2017/2019/2022.
-  // On runners with VS2026, we point VS2022INSTALLDIR at whatever VS is
-  // installed so setvars.bat can find it.
-  const ifortMinor = parseInt(version.split(".")[1], 10);
-  const needsVsWorkaround = ifortMinor < 12;
 
   fs.writeFileSync(
     batFile,
     [
       `@echo off`,
-      ...(needsVsWorkaround
-        ? [
-            `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -property installationPath\`) do set VS2022INSTALLDIR=%%i`,
-          ]
-        : []),
+      `:: 1. Find MSVC Installation Path via vswhere`,
+      `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -property installationPath\`) do set VS_INSTALL_DIR=%%i`,
+
+      `:: 2. Initialize MSVC Environment Natively`,
+      `if exist "%VS_INSTALL_DIR%\\VC\\Auxiliary\\Build\\vcvars64.bat" call "%VS_INSTALL_DIR%\\VC\\Auxiliary\\Build\\vcvars64.bat"`,
+
+      `:: 3. Call Intel's setvars.bat (it will detect MSVC is already active)`,
       `call "${SETVARS_BAT}" --force`,
-      // Explicitly add MSVC link.exe to PATH after setvars.bat runs.
-      `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -find "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe"\`) do set MSVC_LINK_DIR=%%~dpi`,
-      `if defined MSVC_LINK_DIR set PATH=%MSVC_LINK_DIR%;%PATH%`,
+
+      `:: 4. Dump the fully combined environment`,
       `set`,
     ].join("\r\n"),
   );
@@ -154,35 +149,14 @@ export async function installWin32(target: Target): Promise<string> {
       )
     ) {
       if (key.toUpperCase() === "PATH") {
-        // Find MSVC link.exe via vswhere and prepend it to PATH so it takes
-        // precedence over Git's usr/bin/link.exe.
-        let msvcLinkDir = "";
-        try {
-          const vswhere =
-            "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
-          const result = await exec.getExecOutput(
-            vswhere,
-            [
-              "-latest",
-              "-find",
-              "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe",
-            ],
-            { silent: true },
-          );
-          const linkPath = result.stdout.trim().split("\n").pop()?.trim() ?? "";
-          if (linkPath) {
-            msvcLinkDir = path.dirname(linkPath);
-            core.info(`Found MSVC link.exe at: ${linkPath}`);
-          }
-        } catch {
-          core.warning("Could not locate MSVC link.exe via vswhere.");
-        }
-
-        const filtered = val
+        // Keep the filter to remove Git's link.exe to prevent "extra operand" errors.
+        // Since vcvars64.bat already prepended MSVC's link.exe to the PATH,
+        // we no longer need the secondary TypeScript vswhere lookup.
+        const filteredPath = val
           .split(";")
-          .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"));
-        const final = msvcLinkDir ? [msvcLinkDir, ...filtered] : filtered;
-        core.exportVariable("PATH", final.join(";"));
+          .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"))
+          .join(";");
+        core.exportVariable("PATH", filteredPath);
       } else {
         core.exportVariable(key, val);
       }
