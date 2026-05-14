@@ -1,7 +1,13 @@
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-setup--fortran-blueviolet?logo=github)](https://github.com/marketplace/actions/setup-fortran-compilers)
 [![GitHub release](https://img.shields.io/github/v/release/minhqdao/setup-fortran?color=orange)](https://github.com/minhqdao/setup-fortran/releases)
-[![CI](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-gfortran.yml/badge.svg)](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-gfortran.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![CI-gfortran](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-gfortran.yml/badge.svg)](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-gfortran.yml)
+[![CI-ifx](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-ifx.yml/badge.svg)](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-ifx.yml)
+[![CI-ifort](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-ifort.yml/badge.svg)](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-ifort.yml)
+[![CI-nvfortran](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-nvfortran.yml/badge.svg)](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-nvfortran.yml)
+[![CI-aocc](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-aocc.yml/badge.svg)](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-aocc.yml)
+[![CI-lfortran](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-lfortran.yml/badge.svg)](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-lfortran.yml)
+[![CI-flang](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-flang.yml/badge.svg)](https://github.com/minhqdao/setup-fortran/actions/workflows/ci-flang.yml)
 
 # setup-fortran
 
