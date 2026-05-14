@@ -1,10 +1,9 @@
 name: gfortran
 
 on:
-  workflow_dispatch:
-  # push:
-  #   branches: [main]
-  # pull_request:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   build:
@@ -21,7 +20,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [windows-2025-vs2026]
+        image:
+          [
+            ubuntu-24.04,
+            ubuntu-22.04,
+            ubuntu-24.04-arm,
+            ubuntu-22.04-arm,
+            macos-26,
+            macos-26-intel,
+            macos-15,
+            macos-15-intel,
+            macos-14,
+            windows-2025,
+            windows-2022,
+          ]
         toolchain:
           - { compiler: gfortran, version: "16" }
           - { compiler: gfortran, version: "15" }
@@ -30,16 +42,37 @@ jobs:
           - { compiler: gfortran, version: "12" }
           - { compiler: gfortran, version: "11" }
         include:
-          - image: windows-2025-vs2026
+          - image: ubuntu-latest # no compiler and version specified, defaults to the latest gfortran version
+          - image: macos-latest # no compiler and version specified, defaults to the latest gfortran version
+          - image: windows-latest # no compiler and version specified, defaults to the latest gfortran version
+          - image: windows-2025
             toolchain: { compiler: gfortran, msystem: ucrt64 } # only latest version available from Pacman
+          - image: windows-2022
+            toolchain: { compiler: gfortran, msystem: ucrt64 } # only latest version available from Pacman
+        exclude:
+          - image: macos-26
+            toolchain: { compiler: gfortran, version: "16" }
+          - image: macos-26-intel
+            toolchain: { compiler: gfortran, version: "16" }
+          - image: macos-15
+            toolchain: { compiler: gfortran, version: "16" }
+          - image: macos-15-intel
+            toolchain: { compiler: gfortran, version: "16" }
+          - image: macos-14
+            toolchain: { compiler: gfortran, version: "16" }
+
     steps:
       - uses: actions/checkout@v6
 
       - name: Restore dist-tests
-        uses: actions/download-artifact@v8
+        uses: nick-fields/retry@v4
         with:
-          name: generated-dist-tests
-          path: dist-tests
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: gh run download ${{ github.run_id }} --name generated-dist-tests --dir dist-tests
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Install ${{ matrix.toolchain.compiler }} ${{ matrix.toolchain.version }}
         id: setup
