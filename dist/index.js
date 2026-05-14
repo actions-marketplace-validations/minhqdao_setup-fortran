@@ -89599,16 +89599,29 @@ async function win32_installWin32(target) {
         const val = line.substring(eqIdx + 1).trimEnd();
         if (/^(PATH|LIB|INCLUDE|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
             if (key.toUpperCase() === "PATH") {
-                // Git's usr/bin contains a `link` that shadows MSVC's link.exe.
-                // Find MSVC link.exe directory from PATH itself and move it before
-                // Git's tools.
-                const parts = val.split(";");
-                const msvcBin = parts.find((p) => p.toLowerCase().includes("microsoft visual studio") &&
-                    p.toLowerCase().includes("hostx64\\x64"));
-                const filtered = parts.filter((p) => !p.toLowerCase().includes("git\\usr\\bin"));
-                const final = msvcBin
-                    ? [msvcBin, ...filtered.filter((p) => p !== msvcBin)]
-                    : filtered;
+                // Find MSVC link.exe via vswhere and prepend it to PATH so it takes
+                // precedence over Git's usr/bin/link.exe.
+                let msvcLinkDir = "";
+                try {
+                    const vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
+                    const result = await exec.getExecOutput(vswhere, [
+                        "-latest",
+                        "-find",
+                        "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe",
+                    ], { silent: true });
+                    const linkPath = result.stdout.trim().split("\n").pop()?.trim() ?? "";
+                    if (linkPath) {
+                        msvcLinkDir = external_path_default().dirname(linkPath);
+                        core.info(`Found MSVC link.exe at: ${linkPath}`);
+                    }
+                }
+                catch {
+                    core.warning("Could not locate MSVC link.exe via vswhere.");
+                }
+                const filtered = val
+                    .split(";")
+                    .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"));
+                const final = msvcLinkDir ? [msvcLinkDir, ...filtered] : filtered;
                 core.exportVariable("PATH", final.join(";"));
             }
             else {
@@ -90107,16 +90120,29 @@ async function ifort_win32_installWin32(target) {
         const val = line.substring(eqIdx + 1).trimEnd();
         if (/^(PATH|LIB|INCLUDE|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
             if (key.toUpperCase() === "PATH") {
-                // Git's usr/bin contains a `link` that shadows MSVC's link.exe.
-                // Find MSVC link.exe directory from PATH itself and move it before
-                // Git's tools.
-                const parts = val.split(";");
-                const msvcBin = parts.find((p) => p.toLowerCase().includes("microsoft visual studio") &&
-                    p.toLowerCase().includes("hostx64\\x64"));
-                const filtered = parts.filter((p) => !p.toLowerCase().includes("git\\usr\\bin"));
-                const final = msvcBin
-                    ? [msvcBin, ...filtered.filter((p) => p !== msvcBin)]
-                    : filtered;
+                // Find MSVC link.exe via vswhere and prepend it to PATH so it takes
+                // precedence over Git's usr/bin/link.exe.
+                let msvcLinkDir = "";
+                try {
+                    const vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
+                    const result = await exec.getExecOutput(vswhere, [
+                        "-latest",
+                        "-find",
+                        "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe",
+                    ], { silent: true });
+                    const linkPath = result.stdout.trim().split("\n").pop()?.trim() ?? "";
+                    if (linkPath) {
+                        msvcLinkDir = external_path_default().dirname(linkPath);
+                        core.info(`Found MSVC link.exe at: ${linkPath}`);
+                    }
+                }
+                catch {
+                    core.warning("Could not locate MSVC link.exe via vswhere.");
+                }
+                const filtered = val
+                    .split(";")
+                    .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"));
+                const final = msvcLinkDir ? [msvcLinkDir, ...filtered] : filtered;
                 core.exportVariable("PATH", final.join(";"));
             }
             else {
