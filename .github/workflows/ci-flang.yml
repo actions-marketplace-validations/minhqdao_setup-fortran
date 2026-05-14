@@ -1,4 +1,4 @@
-name: ci-flang
+name: flang
 
 on:
   push:

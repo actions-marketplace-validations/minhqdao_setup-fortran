@@ -1,4 +1,4 @@
-name: ci-gfortran
+name: gfortran
 
 on:
   push:
