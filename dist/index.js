@@ -89566,21 +89566,17 @@ async function win32_installWin32(target) {
         core.info("Saving installation to cache...");
         await cache.saveCache(cachePaths, cacheKey);
     }
-    // 2024.0 and earlier versions don't know about VS2026 and need the vswhere workaround.
-    const [year, minor] = version.split(".").map(Number);
-    const needsVsWorkaround = year < 2024 || (year === 2024 && minor === 0);
+    // Create a temporary batch file to capture the environment variables
     const batFile = external_path_default().join(external_os_.tmpdir(), "setvars_and_dump.bat");
     external_fs_.writeFileSync(batFile, [
         `@echo off`,
-        ...(needsVsWorkaround
-            ? [
-                `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -property installationPath\`) do set VS2022INSTALLDIR=%%i`,
-            ]
-            : []),
+        `:: 1. Find MSVC Installation Path via vswhere`,
+        `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -property installationPath\`) do set VS_INSTALL_DIR=%%i`,
+        `:: 2. Initialize MSVC Environment Natively`,
+        `if exist "%VS_INSTALL_DIR%\\VC\\Auxiliary\\Build\\vcvars64.bat" call "%VS_INSTALL_DIR%\\VC\\Auxiliary\\Build\\vcvars64.bat"`,
+        `:: 3. Call Intel's setvars.bat (it will detect MSVC is already active)`,
         `call "${SETVARS_BAT}" --force`,
-        // Explicitly add MSVC link.exe to PATH after setvars.bat runs.
-        `for /f "usebackq tokens=*" %%i in (\`"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe" -latest -find "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe"\`) do set MSVC_LINK_DIR=%%~dpi`,
-        `if defined MSVC_LINK_DIR set PATH=%MSVC_LINK_DIR%;%PATH%`,
+        `:: 4. Dump the fully combined environment`,
         `set`,
     ].join("\r\n"));
     let envOutput = "";
@@ -89599,30 +89595,14 @@ async function win32_installWin32(target) {
         const val = line.substring(eqIdx + 1).trimEnd();
         if (/^(PATH|LIB|INCLUDE|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)) {
             if (key.toUpperCase() === "PATH") {
-                // Find MSVC link.exe via vswhere and prepend it to PATH so it takes
-                // precedence over Git's usr/bin/link.exe.
-                let msvcLinkDir = "";
-                try {
-                    const vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
-                    const result = await exec.getExecOutput(vswhere, [
-                        "-latest",
-                        "-find",
-                        "VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64\\link.exe",
-                    ], { silent: true });
-                    const linkPath = result.stdout.trim().split("\n").pop()?.trim() ?? "";
-                    if (linkPath) {
-                        msvcLinkDir = external_path_default().dirname(linkPath);
-                        core.info(`Found MSVC link.exe at: ${linkPath}`);
-                    }
-                }
-                catch {
-                    core.warning("Could not locate MSVC link.exe via vswhere.");
-                }
-                const filtered = val
+                // Keep the filter to remove Git's link.exe to prevent "extra operand" errors.
+                // Since vcvars64.bat already prepended MSVC's link.exe to the PATH,
+                // we no longer need the secondary TypeScript vswhere lookup.
+                const filteredPath = val
                     .split(";")
-                    .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"));
-                const final = msvcLinkDir ? [msvcLinkDir, ...filtered] : filtered;
-                core.exportVariable("PATH", final.join(";"));
+                    .filter((p) => !p.toLowerCase().includes("git\\usr\\bin"))
+                    .join(";");
+                core.exportVariable("PATH", filteredPath);
             }
             else {
                 core.exportVariable(key, val);
