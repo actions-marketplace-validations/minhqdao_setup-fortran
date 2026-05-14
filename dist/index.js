@@ -89554,7 +89554,21 @@ async function win32_installWin32(target) {
     if (!external_fs_.existsSync(ONEAPI_ROOT)) {
         external_fs_.mkdirSync(ONEAPI_ROOT, { recursive: true });
     }
-    const cacheHit = await cache.restoreCache(cachePaths, cacheKey);
+    let cacheHit;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            cacheHit = await cache.restoreCache(cachePaths, cacheKey); // Sometimes fails
+            break;
+        }
+        catch (err) {
+            if (attempt === 3) {
+                core.warning(`Cache restore failed after 3 attempts, proceeding with fresh install: ${String(err)}`);
+                break;
+            }
+            core.warning(`Cache restore failed (attempt ${attempt.toString()}/3), retrying in ${(attempt * 15).toString()}s...`);
+            await new Promise((res) => setTimeout(res, attempt * 10_000));
+        }
+    }
     if (cacheHit) {
         core.info(`Restored ifx installation from cache (${cacheHit}).`);
     }
